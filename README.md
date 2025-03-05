@@ -4,7 +4,7 @@ A mobile-first web app for missionaries to track "Not At Home" locations during 
 
 ## Deployment Status
 
-Latest deployment: Updated with Supabase client fixes.
+Latest deployment: Updated with improved error handling for missing environment variables.
 
 ## Features
 
@@ -48,7 +48,12 @@ Latest deployment: Updated with Supabase client fixes.
 
 3. Set up environment variables:
    - Copy `.env.local.example` to `.env.local`
-   - Add your Supabase credentials
+   - Add your Supabase credentials:
+     ```
+     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+     NEXT_PUBLIC_SUPABASE_KEY=your_supabase_anon_key
+     SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+     ```
 
 4. Run the development server:
    ```bash
@@ -56,6 +61,16 @@ Latest deployment: Updated with Supabase client fixes.
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Required Environment Variables
+
+The application requires the following environment variables to be set:
+
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_KEY`: Your Supabase anonymous key (public)
+- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key (private)
+
+These must be set in your local `.env.local` file for development and in your Vercel project settings for production deployment.
 
 ## User Roles
 
