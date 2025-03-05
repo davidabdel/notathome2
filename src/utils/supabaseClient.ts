@@ -40,6 +40,30 @@ if (!isProduction && (!finalUrl || !finalKey)) {
   }
 }
 
+// Define the mock client type
+type MockClient = {
+  from: () => {
+    select: () => {
+      eq: () => {
+        single: () => Promise<{ data: null; error: null }>;
+        data: null;
+        error: null;
+      };
+      data: null;
+      error: null;
+    };
+    insert: () => Promise<{ data: null; error: null }>;
+    update: () => Promise<{ data: null; error: null }>;
+    delete: () => Promise<{ data: null; error: null }>;
+  };
+  auth: {
+    getUser: () => Promise<{ data: { user: null }; error: null }>;
+    signIn: () => Promise<{ data: null; error: null }>;
+    signOut: () => Promise<{ error: null }>;
+  };
+  rpc: () => Promise<{ data: null; error: null }>;
+};
+
 // Create a mock client if we're in a server environment without credentials
 // This prevents server-side rendering errors
 const supabase: SupabaseClient<Database> = (!finalUrl || !finalKey) 
