@@ -1,30 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { supabase } from '../utils/supabaseClient';
+// Import the supabase client directly from the source
+import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types/supabase';
 
-// Explicitly type the supabase client with Database type
-const supabaseClient: SupabaseClient<Database> = supabase;
+// Create a properly typed supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY || '';
+const supabaseClient: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Database types
-type DbAddress = Database['public']['Tables']['addresses']['Row'];
-type AddressInsert = Database['public']['Tables']['addresses']['Insert'];
-type AddressUpdate = Database['public']['Tables']['addresses']['Update'];
+type DbAddress = Database['public']['Tables']['not_at_home_addresses']['Row'];
 
-// Component types with non-null address
-interface Address extends Omit<DbAddress, 'address'> {
+// Define the Address type for internal component use
+interface Address {
+  id: string;
   address: string;
-}
-
-interface AddressFields {
-  unitNumber: string;
-  houseNumber: string;
-  streetName: string;
-  suburb: string;
-  address: string;
-  block_number?: string;
+  created_at: string;
+  session_id: string;
+  block_number: string;
   latitude?: number;
   longitude?: number;
+}
+
+// Define the AddressFields type for form state
+interface AddressFields {
+  address: string;
+  block_number: string;
 }
 
 interface AddressListProps {
@@ -44,36 +46,40 @@ const AddressList: React.FC<AddressListProps> = ({
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addressFields, setAddressFields] = useState<AddressFields>({
-    unitNumber: '',
-    houseNumber: '',
-    streetName: '',
-    suburb: '',
     address: '',
-    block_number: undefined,
-    latitude: undefined,
-    longitude: undefined
+    block_number: '',
   });
 
   const fetchAddresses = async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('addresses')
+      setLoading(true);
+      
+      // Use supabaseClient instead of supabase
+      const { data, error: fetchError } = await supabaseClient
+        .from('not_at_home_addresses')
         .select('*')
         .eq('session_id', sessionId)
         .order('created_at', { ascending: true });
-
-      if (fetchError) throw fetchError;
       
-      // Convert database addresses to our Address type with non-null address
-      const validAddresses: Address[] = (data || []).map(dbAddr => ({
+      if (fetchError) {
+        console.error('Error fetching addresses:', fetchError);
+        setError('Failed to load addresses. Please try again.');
+        return;
+      }
+      
+      // Convert null addresses to empty strings and ensure proper typing
+      const validAddresses: Address[] = (data || []).map((dbAddr: DbAddress) => ({
         ...dbAddr,
-        address: dbAddr.address || '' // Convert null to empty string
+        address: dbAddr.address || '',
+        block_number: dbAddr.block_number || ''
       }));
       
       setAddresses(validAddresses);
     } catch (err) {
-      console.error('Error fetching addresses:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch addresses');
+      console.error('Error in fetchAddresses:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -119,14 +125,8 @@ const AddressList: React.FC<AddressListProps> = ({
   const parseAddress = (address: string) => {
     // Initialize with empty values
     const fields: AddressFields = {
-      unitNumber: '',
-      houseNumber: '',
-      streetName: '',
-      suburb: '',
       address: '',
-      block_number: undefined,
-      latitude: undefined,
-      longitude: undefined
+      block_number: '',
     };
 
     try {
@@ -139,18 +139,17 @@ const AddressList: React.FC<AddressListProps> = ({
         
         // Check if the first part might be a unit number
         if (streetParts[0].toLowerCase().includes('unit')) {
-          fields.unitNumber = streetParts[1] || '';
-          fields.houseNumber = streetParts[2] || '';
-          fields.streetName = streetParts.slice(3).join(' ');
+          fields.address = streetParts.slice(1).join(' ');
+          fields.block_number = streetParts[0];
         } else {
-          fields.houseNumber = streetParts[0] || '';
-          fields.streetName = streetParts.slice(1).join(' ');
+          fields.address = streetParts.join(' ');
+          fields.block_number = streetParts[0];
         }
       }
 
       // If there's a second part, it's likely the suburb
       if (parts.length >= 2) {
-        fields.suburb = parts[1];
+        fields.address += `, ${parts[1]}`;
       }
     } catch (err) {
       console.error('Error parsing address:', err);
@@ -178,9 +177,7 @@ const AddressList: React.FC<AddressListProps> = ({
 
     try {
       const formattedAddress = [
-        addressFields.unitNumber ? `Unit ${addressFields.unitNumber},` : '',
-        `${addressFields.houseNumber} ${addressFields.streetName}`,
-        addressFields.suburb
+        addressFields.address
       ].filter(Boolean).join(' ');
 
       // Ensure we have a non-empty address
@@ -220,14 +217,8 @@ const AddressList: React.FC<AddressListProps> = ({
       // Reset editing state
       setEditingId(null);
       setAddressFields({
-        unitNumber: '',
-        houseNumber: '',
-        streetName: '',
-        suburb: '',
         address: '',
-        block_number: undefined,
-        latitude: undefined,
-        longitude: undefined
+        block_number: '',
       });
       
       // Notify parent component if needed
@@ -268,44 +259,24 @@ const AddressList: React.FC<AddressListProps> = ({
           <div key={address.id} className="address-row">
             {editingId === address.id ? (
               <form onSubmit={handleSubmit} className="edit-form">
-                <div className="form-row">
-                  <div className="form-group half">
-                    <label>Unit Number</label>
-                    <input
-                      type="text"
-                      value={addressFields.unitNumber}
-                      onChange={(e) => handleInputChange('unitNumber', e.target.value)}
-                      placeholder="e.g., 4B"
-                    />
-                  </div>
-                  <div className="form-group half">
-                    <label>House Number</label>
-                    <input
-                      type="text"
-                      value={addressFields.houseNumber}
-                      onChange={(e) => handleInputChange('houseNumber', e.target.value)}
-                      placeholder="e.g., 123"
-                      required
-                    />
-                  </div>
-                </div>
                 <div className="form-group">
-                  <label>Street Name</label>
+                  <label>Address</label>
                   <input
                     type="text"
-                    value={addressFields.streetName}
-                    onChange={(e) => handleInputChange('streetName', e.target.value)}
-                    placeholder="e.g., Main Street"
+                    value={addressFields.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="e.g., 123 Main St, Richmond"
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label>Suburb</label>
+                  <label>Block Number</label>
                   <input
                     type="text"
-                    value={addressFields.suburb}
-                    onChange={(e) => handleInputChange('suburb', e.target.value)}
-                    placeholder="e.g., Richmond"
+                    value={addressFields.block_number}
+                    onChange={(e) => handleInputChange('block_number', e.target.value)}
+                    placeholder="e.g., 4B"
+                    required
                   />
                 </div>
                 <div className="button-group">
@@ -414,18 +385,8 @@ const AddressList: React.FC<AddressListProps> = ({
           background-color: var(--background-color);
         }
 
-        .form-row {
-          display: flex;
-          gap: var(--spacing-md);
-          margin-bottom: var(--spacing-md);
-        }
-
         .form-group {
           margin-bottom: var(--spacing-md);
-        }
-
-        .form-group.half {
-          flex: 1;
         }
 
         label {
