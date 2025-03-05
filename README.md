@@ -1,6 +1,10 @@
 # Not At Home
 
-A mobile-first web application designed to help missionaries track "Not At Home" locations during door-to-door outreach.
+A mobile-first web app for missionaries to track "Not At Home" locations during door-to-door outreach.
+
+## Deployment Status
+
+Latest deployment: Updated with Supabase client fixes.
 
 ## Features
 
