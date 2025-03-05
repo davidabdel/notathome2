@@ -118,7 +118,7 @@ export default function CongregationAdminLogin() {
 
   const handleRequestTempPassword = async () => {
     if (!email.trim()) {
-      setError('Please enter your email address to request a temporary password');
+      setError('Please enter your email address to reset your password');
       return;
     }
     
@@ -127,7 +127,7 @@ export default function CongregationAdminLogin() {
     setMessage('');
     
     try {
-      // Request temporary password
+      // Request password reset
       const response = await fetch('/api/send-temp-password', {
         method: 'POST',
         headers: {
@@ -139,7 +139,7 @@ export default function CongregationAdminLogin() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send temporary password');
+        throw new Error(data.error || 'Failed to reset password');
       }
       
       // For development, show the temp password directly
@@ -147,10 +147,10 @@ export default function CongregationAdminLogin() {
         setTempPassword(data.tempPassword);
       }
       
-      setMessage('A temporary password has been sent to your email');
+      setMessage('A password reset link has been sent to your email');
     } catch (err: any) {
-      console.error('Error requesting temporary password:', err);
-      setError(err.message || 'Failed to send temporary password');
+      console.error('Error requesting password reset:', err);
+      setError(err.message || 'Failed to reset password');
     } finally {
       setTempPasswordLoading(false);
     }
@@ -240,7 +240,7 @@ export default function CongregationAdminLogin() {
             onClick={handleRequestTempPassword}
             disabled={loading || tempPasswordLoading}
           >
-            {tempPasswordLoading ? 'Sending...' : 'Send Temp Password'}
+            {tempPasswordLoading ? 'Sending...' : 'Forgot Password'}
           </button>
         </form>
         

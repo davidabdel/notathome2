@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { randomBytes } from 'crypto';
 
 // Create a Supabase client with the service role key for admin operations
 const supabaseAdmin = createClient(
@@ -9,7 +8,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('Send temporary password API called with method:', req.method);
+  console.log('Password reset API called with method:', req.method);
 
   // Check if the request method is allowed
   if (req.method !== 'POST') {
@@ -34,20 +33,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const existingUser = userData.users.find(user => user.email === email);
     
-    // Generate a temporary password (8 characters)
-    const tempPassword = randomBytes(4).toString('hex');
-    
     if (existingUser) {
-      // User exists, update their password
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-        existingUser.id,
-        { password: tempPassword }
-      );
+      // User exists, send password reset email
+      const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/congregation/reset-password`,
+      });
       
-      if (updateError) {
-        console.error('Error updating user password:', updateError);
-        return res.status(500).json({ error: 'Failed to update password' });
+      if (resetError) {
+        console.error('Error sending password reset email:', resetError);
+        return res.status(500).json({ error: 'Failed to send password reset email' });
       }
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Password reset instructions have been sent to your email'
+      });
     } else {
       // Check if this email is associated with a congregation
       const { data: congregationData, error: congregationError } = await supabaseAdmin
@@ -67,11 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
       
-      // Create a new user with the temporary password
+      // Create a new user and send a password reset email
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: tempPassword,
-        email_confirm: true
+        email_confirm: true,
+        password: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) // Random password
       });
       
       if (createError) {
@@ -93,19 +93,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error('Error assigning role:', roleError);
         return res.status(500).json({ error: 'Failed to assign admin role' });
       }
+      
+      // Send password reset email to the newly created user
+      const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/congregation/reset-password`,
+      });
+      
+      if (resetError) {
+        console.error('Error sending password reset email:', resetError);
+        return res.status(500).json({ error: 'Failed to send password reset email' });
+      }
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Password reset instructions have been sent to your email'
+      });
     }
-    
-    // Send email with temporary password
-    // In a production environment, you would use a proper email service
-    // For now, we'll just log it and return it in the response
-    console.log(`Temporary password for ${email}: ${tempPassword}`);
-    
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Temporary password has been sent to your email',
-      // Only include the password in development for testing
-      ...(process.env.NODE_ENV === 'development' && { tempPassword })
-    });
   } catch (error) {
     console.error('Error processing request:', error);
     return res.status(500).json({ error: 'Internal server error' });
