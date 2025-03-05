@@ -1,67 +1,72 @@
 # Not At Home
 
-A mobile-first web app for missionaries to track "Not At Home" locations during door-to-door outreach.
+A mobile-first web application designed to help missionaries track "Not At Home" locations during door-to-door outreach.
 
-## Phase 1: Setup & Authentication
+## Features
 
-This phase includes the initial setup of the project with Supabase integration and a basic authentication UI.
+- **Session Management**
+  - Group Overseers can start and manage sessions
+  - 6-digit codes for instant map sharing
+  - Real-time collaboration between volunteers
 
-### Features
+- **Location Tracking**
+  - Geolocation support for automatic address capture
+  - Manual address entry option
+  - Real-time map updates
 
-- Supabase client setup
-- PIN entry UI for congregation login
-- Core database tables
+- **Congregation Management**
+  - PIN-protected congregation access
+  - Admin approval system for new congregations
+  - Territory map management
+
+- **Security**
+  - Row-Level Security (RLS) for data isolation
+  - Secure PIN hashing with pgcrypto
+  - Protected congregation data
+
+## Tech Stack
+
+- **Frontend**: React (TypeScript) + Material-UI
+- **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage)
+- **Deployment**: Vercel + GitHub Actions
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js (v14 or later)
-- npm or yarn
-- Supabase account
-
-### Installation
-
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/not-at-home.git
-   cd not-at-home
+   git clone https://github.com/davidabdel/notathome2.git
    ```
 
 2. Install dependencies:
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
 3. Set up environment variables:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-   Then edit `.env.local` with your Supabase credentials.
+   - Copy `.env.local.example` to `.env.local`
+   - Add your Supabase credentials
 
 4. Run the development server:
    ```bash
    npm run dev
-   # or
-   yarn dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-### Supabase Setup
+## User Roles
 
-1. Create a new Supabase project
-2. Run the SQL migration in `supabase/migrations/20240510_initial.sql`
-3. Copy your Supabase URL and anon key to the `.env.local` file
+- **Group Overseer**: Manages sessions and shares access codes
+- **Volunteer**: Records "Not At Home" addresses in real-time
+- **Congregation Admin**: Manages congregation maps and PINs
+- **Super Admin**: Approves/rejects congregation requests
 
-## Project Structure
+## Contributing
 
-- `supabase/config.ts` - Supabase client setup
-- `src/components/auth/LoginForm.tsx` - PIN entry UI
-- `supabase/migrations/20240510_initial.sql` - Core tables
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Next Steps
+## License
 
-Phase 2 will focus on congregation onboarding with request forms and security policies. 
+This project is private and confidential. All rights reserved.
+
+---
+Built with ❤️ for making missionary work more efficient 
