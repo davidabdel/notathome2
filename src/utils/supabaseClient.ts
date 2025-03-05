@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '../types/supabase';
 
 // Create a single supabase client for interacting with your database
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,7 +42,7 @@ if (!isProduction && (!finalUrl || !finalKey)) {
 
 // Create a mock client if we're in a server environment without credentials
 // This prevents server-side rendering errors
-let supabase;
+let supabase: SupabaseClient<Database>;
 
 if (!finalUrl || !finalKey) {
   if (!isBrowser) {
@@ -67,17 +68,17 @@ if (!finalUrl || !finalKey) {
         signOut: () => Promise.resolve({ error: null })
       },
       rpc: () => Promise.resolve({ data: null, error: null })
-    };
+    } as unknown as SupabaseClient<Database>;
     
     // @ts-ignore - We're intentionally creating a mock client
     supabase = mockClient;
   } else {
     // In the browser, we need a real client
-    supabase = createClient(fallbackUrl, fallbackKey);
+    supabase = createClient<Database>(fallbackUrl, fallbackKey);
   }
 } else {
   // We have valid credentials, create a real client
-  supabase = createClient(finalUrl, finalKey);
+  supabase = createClient<Database>(finalUrl, finalKey);
 }
 
 export { supabase }; 
