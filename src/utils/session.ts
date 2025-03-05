@@ -311,19 +311,23 @@ export const fetchAndShareSessionData = async (
       // Group addresses by block number
       const addressesByBlock: Record<number, typeof addresses> = {};
       
-      addresses.forEach(address => {
+      addresses.forEach((address: { block_number: number }) => {
         if (!addressesByBlock[address.block_number]) {
           addressesByBlock[address.block_number] = [];
         }
         addressesByBlock[address.block_number].push(address);
       });
       
-      // Add addresses to the share text, grouped by block
-      Object.keys(addressesByBlock).sort((a, b) => Number(a) - Number(b)).forEach(blockNumber => {
-        shareText += `\nBlock ${blockNumber}:\n`;
+      Object.keys(addressesByBlock).sort((a, b) => Number(a) - Number(b)).forEach((blockNumber: string) => {
+        const blockTitle = `Block ${blockNumber}`;
+        shareText += `\n\n${blockTitle}\n${'-'.repeat(blockTitle.length)}\n`;
         
-        addressesByBlock[Number(blockNumber)].forEach(address => {
-          shareText += `- ${address.address || 'No address'}\n`;
+        addressesByBlock[Number(blockNumber)].forEach((address: { address?: string; latitude?: number; longitude?: number }) => {
+          if (address.address) {
+            shareText += `\n${address.address}`;
+          } else if (address.latitude && address.longitude) {
+            shareText += `\nLat: ${address.latitude.toFixed(6)}, Lng: ${address.longitude.toFixed(6)}`;
+          }
         });
       });
     } else {
