@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { supabase } from '../../../supabase/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/layouts/AdminLayout';
 import { FaUsers, FaChurch, FaClipboardList, FaSignInAlt, FaCog, FaPlaceOfWorship } from 'react-icons/fa';
