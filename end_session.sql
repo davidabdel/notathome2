@@ -1,0 +1,1 @@
+CREATE OR REPLACE FUNCTION end_session(p_session_id uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN DELETE FROM session_participants WHERE session_id = p_session_id; DELETE FROM not_at_home_addresses WHERE session_id = p_session_id; DELETE FROM sessions WHERE id = p_session_id; END; $$;
