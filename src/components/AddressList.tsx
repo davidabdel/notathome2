@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
-// Import the supabase client directly from the source
-import { createClient } from '@supabase/supabase-js';
+// Import the supabase client from the utility file
+import { supabase } from '../utils/supabaseClient';
 import { Database } from '../types/supabase';
-
-// Create a properly typed supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY || '';
-const supabaseClient: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Database types
 type DbAddress = Database['public']['Tables']['not_at_home_addresses']['Row'];
@@ -55,7 +50,7 @@ const AddressList: React.FC<AddressListProps> = ({
       setLoading(true);
       
       // Use supabaseClient instead of supabase
-      const { data, error: fetchError } = await supabaseClient
+      const { data, error: fetchError } = await supabase
         .from('not_at_home_addresses')
         .select('*')
         .eq('session_id', sessionId)
@@ -96,7 +91,7 @@ const AddressList: React.FC<AddressListProps> = ({
       setError(null);
       setDetailedError(null);
       
-      const { error: deleteError } = await supabaseClient
+      const { error: deleteError } = await supabase
         .from('not_at_home_addresses')
         .delete()
         .eq('id', addressId);
@@ -186,7 +181,7 @@ const AddressList: React.FC<AddressListProps> = ({
         return;
       }
       
-      const { error: updateError } = await supabaseClient
+      const { error: updateError } = await supabase
         .from('not_at_home_addresses')
         .update({ 
           address: formattedAddress.trim(),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../utils/supabaseClient';
 import Link from 'next/link';
 import TerritoryMapsManager from '../../components/congregation/TerritoryMapsManager';
 import CongregationInfo from '../../components/congregation/CongregationInfo';
@@ -25,12 +25,6 @@ export default function CongregationDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Create a Supabase client
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-          process.env.NEXT_PUBLIC_SUPABASE_KEY || ''
-        );
-        
         // Get the current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
