@@ -42,43 +42,31 @@ if (!isProduction && (!finalUrl || !finalKey)) {
 
 // Create a mock client if we're in a server environment without credentials
 // This prevents server-side rendering errors
-let supabase: SupabaseClient<Database>;
-
-if (!finalUrl || !finalKey) {
-  if (!isBrowser) {
-    // Create a minimal mock client for server-side rendering
-    const mockClient = {
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: null, error: null }),
+const supabase: SupabaseClient<Database> = (!finalUrl || !finalKey) 
+  ? (!isBrowser 
+    ? {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: null, error: null }),
+              data: null,
+              error: null
+            }),
             data: null,
             error: null
           }),
-          data: null,
-          error: null
+          insert: () => Promise.resolve({ data: null, error: null }),
+          update: () => Promise.resolve({ data: null, error: null }),
+          delete: () => Promise.resolve({ data: null, error: null })
         }),
-        insert: () => Promise.resolve({ data: null, error: null }),
-        update: () => Promise.resolve({ data: null, error: null }),
-        delete: () => Promise.resolve({ data: null, error: null })
-      }),
-      auth: {
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        signIn: () => Promise.resolve({ data: null, error: null }),
-        signOut: () => Promise.resolve({ error: null })
-      },
-      rpc: () => Promise.resolve({ data: null, error: null })
-    } as unknown as SupabaseClient<Database>;
-    
-    // @ts-ignore - We're intentionally creating a mock client
-    supabase = mockClient;
-  } else {
-    // In the browser, we need a real client
-    supabase = createClient<Database>(fallbackUrl, fallbackKey);
-  }
-} else {
-  // We have valid credentials, create a real client
-  supabase = createClient<Database>(finalUrl, finalKey);
-}
+        auth: {
+          getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+          signIn: () => Promise.resolve({ data: null, error: null }),
+          signOut: () => Promise.resolve({ error: null })
+        },
+        rpc: () => Promise.resolve({ data: null, error: null })
+      } as unknown as SupabaseClient<Database>
+    : createClient<Database>(fallbackUrl, fallbackKey))
+  : createClient<Database>(finalUrl, finalKey);
 
 export { supabase }; 

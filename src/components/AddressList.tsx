@@ -3,7 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabaseClient';
 import { Database } from '../types/supabase';
 
-// Explicitly type the supabase client
+// Explicitly type the supabase client with Database type
 const supabaseClient: SupabaseClient<Database> = supabase;
 
 // Database types
