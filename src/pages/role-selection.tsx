@@ -36,16 +36,51 @@ export default function RoleSelection() {
           return;
         }
         
-        console.log("Role selection: Session found", { userId: session.user.id });
+        console.log("Role selection: Session found", { 
+          userId: session.user.id,
+          email: session.user.email
+        });
         
         // Get congregation info
         const { data: userRole, error: userRoleError } = await supabase
           .from('user_roles')
-          .select('congregation_id')
+          .select('congregation_id, role')
           .eq('user_id', session.user.id)
           .single();
         
         if (userRoleError) {
+          // Check if it's a "No rows found" error, which is common right after login
+          if (userRoleError.code === 'PGRST116') {
+            console.log("Role selection: No user role found yet, checking local storage");
+            
+            // Try to get congregation info from localStorage
+            const congregationData = localStorage.getItem('congregationData');
+            if (congregationData) {
+              try {
+                const parsedData = JSON.parse(congregationData);
+                if (parsedData.name) {
+                  console.log("Role selection: Using congregation data from localStorage", parsedData);
+                  setCongregationName(parsedData.name);
+                  setCongregationLocation(parsedData.location || '');
+                  setLoading(false);
+                  return;
+                }
+              } catch (e) {
+                console.error("Role selection: Error parsing localStorage data", e);
+              }
+            }
+            
+            // If we still don't have congregation info, try to fetch it from the session
+            // This is a fallback for when the user role might not be immediately available
+            console.log("Role selection: Waiting for user role to be available...");
+            
+            // Set a timeout to check again in 2 seconds
+            setTimeout(() => {
+              checkAuth();
+            }, 2000);
+            return;
+          }
+          
           console.error("Role selection: User role error", userRoleError);
           setError(`Error fetching user role: ${userRoleError.message}`);
           setDebugInfo({ sessionError, userRoleError });
@@ -65,7 +100,7 @@ export default function RoleSelection() {
         
         const { data: congregation, error: congregationError } = await supabase
           .from('congregations')
-          .select('name, location')
+          .select('name')
           .eq('id', userRole.congregation_id)
           .single();
         
@@ -80,7 +115,13 @@ export default function RoleSelection() {
         if (congregation) {
           console.log("Role selection: Congregation found", congregation);
           setCongregationName(congregation.name);
-          setCongregationLocation(congregation.location || '');
+          setCongregationLocation('');
+          
+          // Store congregation data in localStorage for future use
+          localStorage.setItem('congregationData', JSON.stringify({
+            name: congregation.name,
+            location: ''
+          }));
         } else {
           console.error("Role selection: No congregation found");
           setError("Congregation not found");

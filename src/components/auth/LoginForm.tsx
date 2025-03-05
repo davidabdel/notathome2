@@ -253,7 +253,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             localStorage.setItem('congregationData', JSON.stringify({
               id: data.congregation.id,
               name: data.congregation.name,
-              location: data.congregation.location || ''
+              location: '' // Set empty location since the column doesn't exist
             }));
             console.log('Stored congregation data in localStorage');
           }
