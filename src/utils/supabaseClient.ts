@@ -16,6 +16,17 @@ const isBrowser = typeof window !== 'undefined';
 // In production, we should never use fallbacks
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Log errors in production
+if (isProduction) {
+  if (!supabaseUrl) {
+    console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  if (!supabaseKey) {
+    console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_KEY');
+  }
+}
+
 // Only log warnings in development and when in the browser
 if (isBrowser && !isProduction) {
   if (!supabaseUrl) {
@@ -38,6 +49,31 @@ if (!isProduction && (!finalUrl || !finalKey)) {
   if (isBrowser) {
     console.warn('Using fallback Supabase credentials for development. These will not work for actual API calls.');
   }
+}
+
+// In the browser in production, show a user-friendly error
+if (isBrowser && isProduction && (!finalUrl || !finalKey)) {
+  // Add a small delay to ensure the DOM is ready
+  setTimeout(() => {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.padding = '20px';
+    errorDiv.style.margin = '20px';
+    errorDiv.style.backgroundColor = '#f8d7da';
+    errorDiv.style.color = '#721c24';
+    errorDiv.style.borderRadius = '5px';
+    errorDiv.style.textAlign = 'center';
+    errorDiv.innerHTML = `
+      <h2>Configuration Error</h2>
+      <p>The application is missing required configuration. Please contact the administrator.</p>
+      <p>Missing: ${!finalUrl ? 'SUPABASE_URL' : ''} ${!finalKey ? 'SUPABASE_KEY' : ''}</p>
+    `;
+    
+    // Try to add to body if it exists
+    if (document.body) {
+      document.body.innerHTML = '';
+      document.body.appendChild(errorDiv);
+    }
+  }, 100);
 }
 
 // Define the mock client type
