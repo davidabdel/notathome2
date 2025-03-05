@@ -1,13 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '../../utils/adminClient';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // Create a Supabase client with the service role key
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    );
+    // Create a Supabase admin client
+    const supabaseAdmin = createAdminClient();
 
     // Try to query the congregation_requests table
     const { data: requests, error: requestsError } = await supabaseAdmin
