@@ -9,6 +9,9 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('Password reset API called with method:', req.method);
+  console.log('Environment variables check:');
+  console.log('NEXT_PUBLIC_APP_URL defined:', !!process.env.NEXT_PUBLIC_APP_URL);
+  console.log('NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL);
 
   // Check if the request method is allowed
   if (req.method !== 'POST') {
@@ -21,6 +24,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Missing or invalid email' });
   }
+
+  // Get the site URL from environment variables or request headers
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                  `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  
+  console.log('Using site URL for reset link:', siteUrl);
 
   try {
     // Check if the user exists
@@ -36,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (existingUser) {
       // User exists, send password reset email
       const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/congregation/reset-password`,
+        redirectTo: `${siteUrl}/congregation/reset-password`,
       });
       
       if (resetError) {
@@ -96,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       // Send password reset email to the newly created user
       const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/congregation/reset-password`,
+        redirectTo: `${siteUrl}/congregation/reset-password`,
       });
       
       if (resetError) {
