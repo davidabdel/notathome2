@@ -17,30 +17,36 @@ export default function ChangePassword() {
   // Check if user is admin
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/');
-        return;
-      }
-      
       try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .eq('role', 'admin')
-          .single();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (error || !data) {
-          console.error('Error checking admin status:', error);
+        if (!session) {
           router.push('/');
           return;
         }
         
-        setIsAdmin(true);
+        try {
+          const { data, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .eq('role', 'admin')
+            .single();
+          
+          if (error || !data) {
+            console.error('Error checking admin status:', error);
+            router.push('/');
+            return;
+          }
+          
+          setIsAdmin(true);
+        } catch (err) {
+          console.error('Error in admin check:', err);
+          router.push('/');
+        }
       } catch (err) {
-        console.error('Error in admin check:', err);
+        console.error('Error getting session:', err);
+        setError('Failed to verify your session. Please try logging in again.');
         router.push('/');
       }
     };
