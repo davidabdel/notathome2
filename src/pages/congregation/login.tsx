@@ -128,7 +128,7 @@ export default function CongregationAdminLogin() {
     
     try {
       // Request password reset
-      const response = await fetch('/api/send-temp-password', {
+      const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
