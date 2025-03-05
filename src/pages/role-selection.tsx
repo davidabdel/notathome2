@@ -10,43 +10,86 @@ export default function RoleSelection() {
   const [congregationLocation, setCongregationLocation] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   useEffect(() => {
     const checkAuth = async () => {
       try {
         setLoading(true);
+        console.log("Role selection: Starting auth check");
         
         // Check if user is logged in
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Role selection: Session error", sessionError);
+          setError(`Session error: ${sessionError.message}`);
+          setDebugInfo({ sessionError });
+          setLoading(false);
+          return;
+        }
         
         if (!session) {
+          console.log("Role selection: No session found, redirecting to login");
           // Redirect to login if not logged in
           router.push('/');
           return;
         }
         
+        console.log("Role selection: Session found", { userId: session.user.id });
+        
         // Get congregation info
-        const { data: userRole } = await supabase
+        const { data: userRole, error: userRoleError } = await supabase
           .from('user_roles')
           .select('congregation_id')
           .eq('user_id', session.user.id)
           .single();
         
-        if (userRole) {
-          const { data: congregation } = await supabase
-            .from('congregations')
-            .select('name, location')
-            .eq('id', userRole.congregation_id)
-            .single();
-          
-          if (congregation) {
-            setCongregationName(congregation.name);
-            setCongregationLocation(congregation.location || '');
-          }
+        if (userRoleError) {
+          console.error("Role selection: User role error", userRoleError);
+          setError(`Error fetching user role: ${userRoleError.message}`);
+          setDebugInfo({ sessionError, userRoleError });
+          setLoading(false);
+          return;
+        }
+        
+        if (!userRole) {
+          console.error("Role selection: No user role found");
+          setError("No congregation role found for your account");
+          setDebugInfo({ session, noUserRole: true });
+          setLoading(false);
+          return;
+        }
+        
+        console.log("Role selection: User role found", userRole);
+        
+        const { data: congregation, error: congregationError } = await supabase
+          .from('congregations')
+          .select('name, location')
+          .eq('id', userRole.congregation_id)
+          .single();
+        
+        if (congregationError) {
+          console.error("Role selection: Congregation error", congregationError);
+          setError(`Error fetching congregation: ${congregationError.message}`);
+          setDebugInfo({ session, userRole, congregationError });
+          setLoading(false);
+          return;
+        }
+        
+        if (congregation) {
+          console.log("Role selection: Congregation found", congregation);
+          setCongregationName(congregation.name);
+          setCongregationLocation(congregation.location || '');
+        } else {
+          console.error("Role selection: No congregation found");
+          setError("Congregation not found");
+          setDebugInfo({ session, userRole, noCongregation: true });
         }
       } catch (err) {
-        console.error('Error checking auth status:', err);
-        setError('Error loading congregation information');
+        console.error('Role selection: Unexpected error:', err);
+        setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+        setDebugInfo({ unexpectedError: err instanceof Error ? err.message : String(err) });
       } finally {
         setLoading(false);
       }
@@ -79,6 +122,7 @@ export default function RoleSelection() {
       <div className="loading-container">
         <div className="spinner"></div>
         <p>Loading...</p>
+        <p className="loading-message">Checking authentication status...</p>
       </div>
     );
   }
@@ -94,7 +138,7 @@ export default function RoleSelection() {
       
       <header className="header">
         <div className="congregation-info">
-          <h2>{congregationName}</h2>
+          <h2>{congregationName || 'No Congregation'}</h2>
           {congregationLocation && <p>{congregationLocation}</p>}
         </div>
         <button onClick={handleChangeCongregation} className="change-congregation-btn">
@@ -107,25 +151,44 @@ export default function RoleSelection() {
           <h1 className="title">Not at Home</h1>
           <p className="subtitle">Select your role to continue</p>
           
-          <div className="role-buttons">
-            <button 
-              className="role-button overseer"
-              onClick={() => handleRoleSelect('group_overseer')}
-            >
-              <span className="icon">👤</span>
-              Group Overseer
-            </button>
-            
-            <button 
-              className="role-button publisher"
-              onClick={() => handleRoleSelect('publisher')}
-            >
-              <span className="icon">💬</span>
-              Publisher
-            </button>
-          </div>
+          {error && (
+            <div className="error-message">
+              <h3>Error</h3>
+              <p>{error}</p>
+              {debugInfo && (
+                <details>
+                  <summary>Debug Information</summary>
+                  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                </details>
+              )}
+              <button 
+                onClick={handleChangeCongregation} 
+                className="error-action-button"
+              >
+                Return to Login
+              </button>
+            </div>
+          )}
           
-          {error && <div className="error-message">{error}</div>}
+          {!error && (
+            <div className="role-buttons">
+              <button 
+                className="role-button overseer"
+                onClick={() => handleRoleSelect('group_overseer')}
+              >
+                <span className="icon">👤</span>
+                Group Overseer
+              </button>
+              
+              <button 
+                className="role-button publisher"
+                onClick={() => handleRoleSelect('publisher')}
+              >
+                <span className="icon">💬</span>
+                Publisher
+              </button>
+            </div>
+          )}
           
           <div className="privacy-disclaimer">
             <h3>Privacy Disclaimer</h3>
@@ -278,15 +341,68 @@ export default function RoleSelection() {
           font-size: 1.25rem;
         }
         
+        .loading-message {
+          margin-top: 0.5rem;
+          color: #6b7280;
+          font-size: 0.875rem;
+        }
+        
         .error-message {
-          color: #ef4444;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
           background-color: #fee2e2;
-          padding: 0.75rem;
-          border-radius: 0.375rem;
-          margin-bottom: 1.5rem;
+          border: 1px solid #ef4444;
+          border-radius: 0.5rem;
+          color: #b91c1c;
           width: 100%;
           max-width: 480px;
-          text-align: center;
+        }
+        
+        .error-message h3 {
+          margin-top: 0;
+          font-size: 1.125rem;
+          font-weight: 600;
+        }
+        
+        .error-message p {
+          margin-bottom: 1rem;
+        }
+        
+        .error-message details {
+          margin-top: 1rem;
+          margin-bottom: 1rem;
+        }
+        
+        .error-message summary {
+          cursor: pointer;
+          color: #4b5563;
+        }
+        
+        .error-message pre {
+          margin-top: 0.5rem;
+          padding: 0.75rem;
+          background-color: #f3f4f6;
+          border-radius: 0.25rem;
+          font-size: 0.75rem;
+          overflow-x: auto;
+          color: #1f2937;
+        }
+        
+        .error-action-button {
+          display: inline-block;
+          padding: 0.5rem 1rem;
+          background-color: #b91c1c;
+          color: white;
+          border: none;
+          border-radius: 0.25rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .error-action-button:hover {
+          background-color: #991b1b;
         }
         
         .privacy-disclaimer {
