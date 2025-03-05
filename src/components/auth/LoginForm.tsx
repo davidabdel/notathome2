@@ -248,6 +248,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           
           console.log('Login successful for congregation:', data.congregation.name);
           
+          // Store congregation data in localStorage
+          if (data.congregation) {
+            localStorage.setItem('congregationData', JSON.stringify({
+              id: data.congregation.id,
+              name: data.congregation.name,
+              location: data.congregation.location || ''
+            }));
+            console.log('Stored congregation data in localStorage');
+          }
+          
           // Call the success callback
           if (onSuccess) {
             onSuccess();
