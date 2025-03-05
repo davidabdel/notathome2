@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '../../utils/adminClient';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Only allow POST requests
@@ -8,19 +8,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Check if we have the service role key
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({ 
-        error: 'SUPABASE_SERVICE_ROLE_KEY is not set in environment variables',
-        message: 'Server configuration error'
-      });
-    }
-    
-    // Create a Supabase client with the service role key to bypass RLS
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    // Create a Supabase admin client
+    const supabaseAdmin = createAdminClient();
     
     // Get congregation name and pin from request body
     const { congregationName, pin } = req.body;
