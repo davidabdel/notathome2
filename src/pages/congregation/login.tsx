@@ -236,11 +236,11 @@ export default function CongregationAdminLogin() {
           
           <button 
             type="button" 
-            className="temp-password-button"
+            className="forgot-password-btn"
             onClick={handleRequestTempPassword}
             disabled={loading || tempPasswordLoading}
           >
-            {tempPasswordLoading ? 'Sending...' : 'Forgot Password'}
+            {tempPasswordLoading ? 'Sending reset link...' : 'Forgot Password?'}
           </button>
         </form>
         
@@ -365,30 +365,28 @@ export default function CongregationAdminLogin() {
           cursor: not-allowed;
         }
         
-        .temp-password-button {
+        .forgot-password-btn {
+          display: block;
           width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.75rem 1rem;
+          padding: 0.75rem 1.5rem;
           background-color: transparent;
-          color: #6b7280;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
+          color: #2563eb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
           font-size: 1rem;
           font-weight: 500;
           cursor: pointer;
           margin-top: 1rem;
-          transition: all 0.15s ease;
+          transition: all 0.2s;
         }
         
-        .temp-password-button:hover {
+        .forgot-password-btn:hover {
           background-color: #f3f4f6;
-          color: #111827;
+          border-color: #d1d5db;
         }
         
-        .temp-password-button:disabled {
-          opacity: 0.6;
+        .forgot-password-btn:disabled {
+          color: #9ca3af;
           cursor: not-allowed;
         }
         
