@@ -1,8 +1,8 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../supabase/config';
-import { FaKey, FaSignOutAlt } from 'react-icons/fa';
+import { FaKey, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -10,6 +10,7 @@ interface AdminLayoutProps {
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleLogout = async () => {
     try {
@@ -24,13 +25,24 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       console.error('Unexpected error during logout:', err);
     }
   };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
   
   return (
     <div className="admin-layout">
-      <div className="admin-sidebar">
+      <div className={`admin-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <h1>Not At Home</h1>
           <p>Admin Panel</p>
+          <button 
+            className="mobile-close-button" 
+            onClick={toggleMobileMenu}
+            aria-label="Close menu"
+          >
+            <FaTimes />
+          </button>
         </div>
         <nav className="sidebar-nav">
           <Link href="/admin" className={router.pathname === '/admin' ? 'active' : ''}>
@@ -48,6 +60,18 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </button>
         </nav>
       </div>
+
+      <div className="mobile-header">
+        <button 
+          className="mobile-menu-button" 
+          onClick={toggleMobileMenu}
+          aria-label="Open menu"
+        >
+          <FaBars />
+        </button>
+        <h1>Not At Home</h1>
+      </div>
+
       <div className="admin-content">
         <main>{children}</main>
         <footer>
@@ -60,6 +84,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
         </footer>
       </div>
+      
+      {mobileMenuOpen && (
+        <div className="mobile-overlay" onClick={toggleMobileMenu}></div>
+      )}
       
       <style jsx>{`
         .admin-layout {
@@ -74,10 +102,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           padding: 1.5rem;
           display: flex;
           flex-direction: column;
+          z-index: 100;
         }
         
         .sidebar-header {
           margin-bottom: 2rem;
+          position: relative;
         }
         
         .sidebar-header h1 {
@@ -183,6 +213,53 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         .divider {
           margin: 0 0.5rem;
         }
+
+        .mobile-header {
+          display: none;
+          background-color: #1e293b;
+          color: white;
+          padding: 1rem;
+          align-items: center;
+          position: sticky;
+          top: 0;
+          z-index: 50;
+        }
+
+        .mobile-header h1 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin: 0;
+          text-align: center;
+          flex: 1;
+        }
+
+        .mobile-menu-button, 
+        .mobile-close-button {
+          background: none;
+          border: none;
+          color: white;
+          font-size: 1.25rem;
+          cursor: pointer;
+          display: none;
+          padding: 0.5rem;
+        }
+
+        .mobile-close-button {
+          position: absolute;
+          top: 0;
+          right: 0;
+        }
+
+        .mobile-overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 90;
+        }
         
         @media (max-width: 768px) {
           .admin-layout {
@@ -190,22 +267,42 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           }
           
           .admin-sidebar {
-            width: 100%;
+            position: fixed;
+            top: 0;
+            left: -280px;
+            height: 100vh;
+            width: 280px;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+          }
+
+          .admin-sidebar.mobile-open {
+            left: 0;
+          }
+          
+          .mobile-header {
+            display: flex;
+          }
+
+          .mobile-menu-button,
+          .mobile-close-button {
+            display: block;
+          }
+
+          .mobile-overlay {
+            display: block;
+          }
+          
+          .admin-content {
+            margin-top: 0;
+          }
+          
+          main {
             padding: 1rem;
           }
-          
-          .sidebar-header {
-            margin-bottom: 1rem;
-          }
-          
-          .sidebar-nav {
-            flex-direction: row;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-          }
-          
-          .sidebar-nav a, .logout-button {
-            white-space: nowrap;
+
+          footer {
+            padding: 1rem;
           }
         }
       `}</style>

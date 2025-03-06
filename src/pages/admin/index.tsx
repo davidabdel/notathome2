@@ -160,7 +160,10 @@ export default function AdminDashboard() {
       <Head>
         <title>Admin Dashboard - Not At Home</title>
         <meta name="description" content="Admin dashboard for Not At Home" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+        <meta name="theme-color" content="#1e293b" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </Head>
 
       <div className="content-container">
@@ -254,6 +257,51 @@ export default function AdminDashboard() {
           </>
         )}
       </div>
+
+      <style jsx>{`
+        .content-container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 3rem 0;
+        }
+        
+        .loading-spinner {
+          border: 3px solid rgba(0, 0, 0, 0.1);
+          border-radius: 50%;
+          border-top: 3px solid #2563eb;
+          width: 40px;
+          height: 40px;
+          animation: spin 1s linear infinite;
+          margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+          background-color: #fee2e2;
+          color: #b91c1c;
+          padding: 1rem;
+          border-radius: 0.375rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 480px) {
+          .loading-spinner {
+            width: 32px;
+            height: 32px;
+          }
+        }
+      `}</style>
     </AdminLayout>
   );
 } 
