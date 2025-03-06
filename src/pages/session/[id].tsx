@@ -225,7 +225,7 @@ const SessionPage: React.FC = () => {
                     />
                     
                     <div className="block-actions">
-                      <h3 className="block-number">Block Number: {selectedBlock || 'None'}</h3>
+                      <h3 className="block-number">{selectedBlock || 'None'}</h3>
                       <LocationRecorder 
                         sessionId={session.id} 
                         selectedBlock={selectedBlock}

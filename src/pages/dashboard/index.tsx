@@ -795,6 +795,14 @@ export default function GroupOverseerDashboard() {
         </div>
       </main>
       
+      <div className="important-notice">
+        <div className="notice-icon">⚠️</div>
+        <div className="notice-content">
+          <h3>Important Notice!</h3>
+          <p>All sessions will delete including the data after 24 hours. Please be sure to share the session data with yourself within this time period. You can do this by tapping on "End Session" and then tap on "Share and End Session".</p>
+        </div>
+      </div>
+      
       {/* Map Selection Modal */}
       <MapSelectionModal
         isOpen={isMapModalOpen}
@@ -1281,6 +1289,38 @@ export default function GroupOverseerDashboard() {
           background-color: #dc2626;
         }
         
+        .important-notice {
+          margin-top: 2rem;
+          margin-bottom: 1rem;
+          padding: 1rem;
+          background-color: #fff3cd;
+          border: 1px solid #ffeeba;
+          border-radius: 0.5rem;
+          display: flex;
+          align-items: flex-start;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .notice-icon {
+          font-size: 1.5rem;
+          margin-right: 0.75rem;
+          padding-top: 0.25rem;
+        }
+        
+        .notice-content h3 {
+          margin: 0 0 0.5rem 0;
+          color: #856404;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+        
+        .notice-content p {
+          margin: 0;
+          color: #856404;
+          font-size: 0.95rem;
+          line-height: 1.5;
+        }
+        
         @media (max-width: 640px) {
           .sessions-table {
             font-size: 0.75rem;
@@ -1309,6 +1349,22 @@ export default function GroupOverseerDashboard() {
           .end-session-btn-small {
             padding: 0.25rem 0.5rem;
             font-size: 0.7rem;
+          }
+          
+          .important-notice {
+            padding: 0.75rem;
+          }
+          
+          .notice-icon {
+            font-size: 1.25rem;
+          }
+          
+          .notice-content h3 {
+            font-size: 1rem;
+          }
+          
+          .notice-content p {
+            font-size: 0.85rem;
           }
         }
       `}</style>

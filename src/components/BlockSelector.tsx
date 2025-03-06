@@ -10,8 +10,6 @@ const BlockSelector: React.FC<BlockSelectorProps> = ({ selectedBlock, onSelectBl
   
   return (
     <div className="block-selector-container">
-      <h3 className="block-selector-title">Block Number:</h3>
-      
       <div className="block-grid">
         {blocks.map(block => (
           <button
@@ -27,13 +25,6 @@ const BlockSelector: React.FC<BlockSelectorProps> = ({ selectedBlock, onSelectBl
       <style jsx>{`
         .block-selector-container {
           margin-bottom: 1.5rem;
-        }
-        
-        .block-selector-title {
-          margin: 0 0 0.75rem;
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: #111827;
         }
         
         .block-grid {

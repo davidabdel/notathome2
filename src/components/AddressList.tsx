@@ -20,8 +20,11 @@ interface Address {
 
 // Define the AddressFields type for form state
 interface AddressFields {
-  address: string;
   block_number: string;
+  unit_number: string;
+  house_number: string;
+  street_name: string;
+  suburb: string;
 }
 
 interface AddressListProps {
@@ -40,9 +43,13 @@ const AddressList: React.FC<AddressListProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [addressFields, setAddressFields] = useState<AddressFields>({
-    address: '',
     block_number: '',
+    unit_number: '',
+    house_number: '',
+    street_name: '',
+    suburb: '',
   });
 
   const fetchAddresses = async () => {
@@ -82,10 +89,8 @@ const AddressList: React.FC<AddressListProps> = ({
     fetchAddresses();
   }, [sessionId, selectedBlock]);
   
-  const handleDelete = async (addressId: string) => {
-    if (!confirm('Are you sure you want to delete this address?')) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!editingId) return;
 
     try {
       setError(null);
@@ -94,7 +99,7 @@ const AddressList: React.FC<AddressListProps> = ({
       const { error: deleteError } = await supabase
         .from('not_at_home_addresses')
         .delete()
-        .eq('id', addressId);
+        .eq('id', editingId);
       
       if (deleteError) {
         setError('Error deleting address');
@@ -104,7 +109,11 @@ const AddressList: React.FC<AddressListProps> = ({
       }
       
       // Update the local state
-      setAddresses(addresses.filter(addr => addr.id !== addressId));
+      setAddresses(addresses.filter(addr => addr.id !== editingId));
+      
+      // Close the modal
+      setShowEditModal(false);
+      setEditingId(null);
       
       // Notify parent component if needed
       if (onAddressUpdated) {
@@ -117,34 +126,73 @@ const AddressList: React.FC<AddressListProps> = ({
     }
   };
 
-  const parseAddress = (address: string) => {
+  const parseAddress = (address: string | Address) => {
     // Initialize with empty values
     const fields: AddressFields = {
-      address: '',
       block_number: '',
+      unit_number: '',
+      house_number: '',
+      street_name: '',
+      suburb: '',
     };
 
     try {
-      // Remove any extra whitespace and split the address
+      // Handle if address is an object (Address type)
+      if (typeof address !== 'string') {
+        // Extract the address string
+        const addressStr = address.address;
+        
+        // Set block number if it exists
+        if (address.block_number) {
+          fields.block_number = address.block_number;
+        }
+        
+        // Process the address string
+        const parts = addressStr.trim().split(',').map(part => part.trim());
+        
+        // Rest of the parsing logic...
+        if (parts.length >= 1) {
+          // First part typically contains house number and street
+          const streetParts = parts[0].split(' ');
+          
+          if (streetParts.length >= 2) {
+            // First part is likely the house number
+            fields.house_number = streetParts[0];
+            // Rest is the street name
+            fields.street_name = streetParts.slice(1).join(' ');
+          } else {
+            fields.street_name = parts[0];
+          }
+        }
+
+        // If there's a second part, it's likely the suburb
+        if (parts.length >= 2) {
+          fields.suburb = parts[1];
+        }
+        
+        return fields;
+      }
+      
+      // If address is a string
       const parts = address.trim().split(',').map(part => part.trim());
 
       if (parts.length >= 1) {
-        // Handle the first part which could contain unit and house number
+        // First part typically contains house number and street
         const streetParts = parts[0].split(' ');
         
-        // Check if the first part might be a unit number
-        if (streetParts[0].toLowerCase().includes('unit')) {
-          fields.address = streetParts.slice(1).join(' ');
-          fields.block_number = streetParts[0];
+        if (streetParts.length >= 2) {
+          // First part is likely the house number
+          fields.house_number = streetParts[0];
+          // Rest is the street name
+          fields.street_name = streetParts.slice(1).join(' ');
         } else {
-          fields.address = streetParts.join(' ');
-          fields.block_number = streetParts[0];
+          fields.street_name = parts[0];
         }
       }
 
       // If there's a second part, it's likely the suburb
       if (parts.length >= 2) {
-        fields.address += `, ${parts[1]}`;
+        fields.suburb = parts[1];
       }
     } catch (err) {
       console.error('Error parsing address:', err);
@@ -155,8 +203,12 @@ const AddressList: React.FC<AddressListProps> = ({
   
   const startEditing = (address: Address) => {
     setEditingId(address.id);
-    const parsedAddress = parseAddress(address.address);
-    setAddressFields(parsedAddress);
+    
+    // Parse the address into fields
+    const parsedFields = parseAddress(address);
+    
+    setAddressFields(parsedFields);
+    setShowEditModal(true);
   };
   
   const handleInputChange = (field: keyof AddressFields, value: string) => {
@@ -171,8 +223,11 @@ const AddressList: React.FC<AddressListProps> = ({
     if (!editingId) return;
 
     try {
+      // Format the address from the fields
       const formattedAddress = [
-        addressFields.address
+        addressFields.house_number,
+        addressFields.street_name,
+        addressFields.suburb ? `, ${addressFields.suburb}` : ''
       ].filter(Boolean).join(' ');
 
       // Ensure we have a non-empty address
@@ -185,6 +240,7 @@ const AddressList: React.FC<AddressListProps> = ({
         .from('not_at_home_addresses')
         .update({ 
           address: formattedAddress.trim(),
+          block_number: addressFields.block_number
         })
         .eq('id', editingId);
       
@@ -200,7 +256,8 @@ const AddressList: React.FC<AddressListProps> = ({
         if (addr.id === editingId) {
           const updatedAddr: Address = {
             ...addr,
-            address: formattedAddress.trim()
+            address: formattedAddress.trim(),
+            block_number: addressFields.block_number
           };
           return updatedAddr;
         }
@@ -209,11 +266,15 @@ const AddressList: React.FC<AddressListProps> = ({
       
       setAddresses(updatedAddresses);
       
-      // Reset editing state
+      // Reset editing state and close modal
       setEditingId(null);
+      setShowEditModal(false);
       setAddressFields({
-        address: '',
         block_number: '',
+        unit_number: '',
+        house_number: '',
+        street_name: '',
+        suburb: '',
       });
       
       // Notify parent component if needed
@@ -237,13 +298,17 @@ const AddressList: React.FC<AddressListProps> = ({
     }
   };
 
+  const closeModal = () => {
+    setShowEditModal(false);
+    setEditingId(null);
+  };
+
   if (loading) {
     return <div className="text-center py-4">Loading addresses...</div>;
   }
   
   return (
     <div className="addresses-container">
-      <h2>Addresses</h2>
       {error && <div className="error-message">{error}</div>}
       <div className="address-list">
         <div className="address-header">
@@ -252,55 +317,115 @@ const AddressList: React.FC<AddressListProps> = ({
         </div>
         {addresses.map(address => (
           <div key={address.id} className="address-row">
-            {editingId === address.id ? (
-              <form onSubmit={handleSubmit} className="edit-form">
-                <div className="form-group">
-                  <label>Address</label>
-                  <input
-                    type="text"
-                    value={addressFields.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="e.g., 123 Main St, Richmond"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Block Number</label>
-                  <input
-                    type="text"
-                    value={addressFields.block_number}
-                    onChange={(e) => handleInputChange('block_number', e.target.value)}
-                    placeholder="e.g., 4B"
-                    required
-                  />
-                </div>
-                <div className="button-group">
-                  <button type="submit" className="save-button">Save</button>
-                  <button 
-                    type="button" 
-                    onClick={() => setEditingId(null)}
-                    className="cancel-button"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <div className="address-cell">{formatAddress(address)}</div>
-                <div className="actions-cell">
-                  <button 
-                    onClick={() => startEditing(address)}
-                    className="edit-button"
-                  >
-                    ✎
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="address-cell">{formatAddress(address)}</div>
+            <div className="actions-cell">
+              <button 
+                onClick={() => startEditing(address)}
+                className="edit-button"
+                aria-label="Edit address"
+              >
+                ✎
+              </button>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Edit Address Modal */}
+      {showEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h2>Edit Location</h2>
+              <p className="modal-subtitle">Update the location details</p>
+              <button className="close-button" onClick={closeModal}>×</button>
+            </div>
+            <form onSubmit={handleSubmit} className="edit-form">
+              <div className="form-group">
+                <label htmlFor="block-number">Block Number</label>
+                <input
+                  id="block-number"
+                  type="text"
+                  value={addressFields.block_number}
+                  onChange={(e) => handleInputChange('block_number', e.target.value)}
+                  placeholder="1"
+                />
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="unit-number">Unit Number</label>
+                  <input
+                    id="unit-number"
+                    type="text"
+                    value={addressFields.unit_number}
+                    onChange={(e) => handleInputChange('unit_number', e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="house-number">House Number</label>
+                  <input
+                    id="house-number"
+                    type="text"
+                    value={addressFields.house_number}
+                    onChange={(e) => handleInputChange('house_number', e.target.value)}
+                    placeholder="Dalmeny"
+                  />
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="street-name">Street Name</label>
+                <input
+                  id="street-name"
+                  type="text"
+                  value={addressFields.street_name}
+                  onChange={(e) => handleInputChange('street_name', e.target.value)}
+                  placeholder="Dr Near Venenzia St"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="suburb">Suburb</label>
+                <input
+                  id="suburb"
+                  type="text"
+                  value={addressFields.suburb}
+                  onChange={(e) => handleInputChange('suburb', e.target.value)}
+                  placeholder="Prestons"
+                />
+              </div>
+              
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="delete-button"
+                  onClick={handleDelete}
+                >
+                  Delete
+                </button>
+                <div className="right-actions">
+                  <button 
+                    type="button" 
+                    className="cancel-button"
+                    onClick={closeModal}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="save-button"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .addresses-container {
@@ -374,71 +499,149 @@ const AddressList: React.FC<AddressListProps> = ({
           background-color: rgba(37, 99, 235, 0.1);
         }
 
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .modal-container {
+          background-color: white;
+          border-radius: 8px;
+          width: 90%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+          padding: 1.5rem;
+          border-bottom: 1px solid #e5e7eb;
+          position: relative;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 1.5rem;
+          color: #111827;
+        }
+
+        .modal-subtitle {
+          margin: 0.5rem 0 0;
+          color: #6b7280;
+          font-size: 1rem;
+        }
+
+        .close-button {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6b7280;
+        }
+
         .edit-form {
-          flex: 1;
-          padding: var(--spacing-md);
-          background-color: var(--background-color);
+          padding: 1.5rem;
         }
 
         .form-group {
-          margin-bottom: var(--spacing-md);
+          margin-bottom: 1.25rem;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .form-row .form-group {
+          flex: 1;
         }
 
         label {
           display: block;
-          margin-bottom: var(--spacing-xs);
+          margin-bottom: 0.5rem;
           font-weight: 500;
-          color: var(--text-color);
+          color: #111827;
+          font-size: 0.95rem;
         }
 
         input {
           width: 100%;
-          padding: 0.5rem 0.75rem;
-          border: 1px solid var(--border-color);
-          border-radius: 4px;
+          padding: 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
           font-size: 1rem;
           transition: border-color 0.2s;
         }
 
         input:focus {
           outline: none;
-          border-color: var(--primary-color);
+          border-color: #2563eb;
           box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
 
-        .button-group {
+        .modal-actions {
           display: flex;
-          gap: var(--spacing-sm);
-          margin-top: var(--spacing-md);
+          justify-content: space-between;
+          margin-top: 2rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e5e7eb;
         }
 
-        .save-button,
-        .cancel-button {
-          padding: 0.5rem 1rem;
+        .right-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .delete-button,
+        .cancel-button,
+        .save-button {
+          padding: 0.75rem 1rem;
           border: none;
-          border-radius: 4px;
-          font-size: 0.875rem;
+          border-radius: 6px;
+          font-size: 0.95rem;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s;
         }
 
+        .delete-button {
+          background-color: #ef4444;
+          color: white;
+        }
+
+        .delete-button:hover {
+          background-color: #dc2626;
+        }
+
+        .cancel-button {
+          background-color: #f3f4f6;
+          color: #4b5563;
+        }
+
+        .cancel-button:hover {
+          background-color: #e5e7eb;
+        }
+
         .save-button {
-          background-color: var(--primary-color);
+          background-color: #1e293b;
           color: white;
         }
 
         .save-button:hover {
-          background-color: var(--primary-hover);
-        }
-
-        .cancel-button {
-          background-color: var(--border-color);
-          color: var(--text-secondary);
-        }
-
-        .cancel-button:hover {
-          background-color: #d1d5db;
+          background-color: #0f172a;
         }
       `}</style>
     </div>

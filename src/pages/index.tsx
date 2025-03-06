@@ -128,7 +128,7 @@ export default function Home() {
           <div className="header">
             <h1 className="title">Not At Home</h1>
             <p className="description">
-              Track locations during outreach activities
+              ... Bearing thorough witness...
             </p>
           </div>
 
@@ -165,15 +165,18 @@ export default function Home() {
         </div>
         
         <div className="admin-login-container">
-          <Link href="/congregation/login" className="admin-login-bottom">
+          <button 
+            onClick={() => window.location.href = '/congregation/login'} 
+            className="admin-login-button"
+          >
             Congregation Admin Login
-          </Link>
+          </button>
         </div>
       </main>
 
       <footer>
         <div className="footer-content">
-          <span className="copyright">© 2025 UConnect (International) Pty Ltd t/as nhjw.org</span>
+          <span className="copyright">© 2025 UConnect (International) Pty Ltd t/as nothome.app</span>
         </div>
       </footer>
 
@@ -413,24 +416,31 @@ export default function Home() {
 
         .admin-login-container {
           width: 100%;
-          text-align: center;
+          max-width: 480px;
+          margin: 0 auto;
           margin-top: var(--spacing-md);
           margin-bottom: var(--spacing-lg);
+          padding: 0 var(--spacing-md);
         }
         
-        .admin-login-bottom {
-          color: var(--link-color);
-          font-weight: 500;
-          text-decoration: none;
-          padding: 0.75rem 1.5rem;
-          transition: all 0.2s;
+        .admin-login-button {
+          background-color: #3a7bc8;
+          color: white;
+          border: none;
           border-radius: 8px;
-          display: inline-block;
+          padding: 0.85rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          width: 100%;
         }
         
-        .admin-login-bottom:hover {
-          color: var(--primary-hover);
-          background-color: rgba(37, 99, 235, 0.05);
+        .admin-login-button:hover {
+          background-color: #2c5d99;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
       `}</style>
 

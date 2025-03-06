@@ -1,9 +1,22 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
+import { useEffect } from 'react';
 import AddToHomeScreen from '../components/AddToHomeScreen';
+import { setupExpirationChecker } from '../utils/sessionExpiration';
 import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
+  // Set up session expiration checker
+  useEffect(() => {
+    // Check for expired sessions every 15 minutes
+    const clearExpirationChecker = setupExpirationChecker(15);
+    
+    // Clean up when component unmounts
+    return () => {
+      clearExpirationChecker();
+    };
+  }, []);
+  
   return (
     <>
       <Head>

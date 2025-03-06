@@ -10,7 +10,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [congregationName, setCongregationName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   // Autocomplete states
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -92,7 +91,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
     setLoading(true);
     setError('');
-    setDebugInfo(null);
 
     try {
       // Trim the congregation name to remove any leading/trailing spaces
@@ -119,11 +117,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           const data = await response.json();
           console.log('Admin login API response:', data);
           
-          setDebugInfo((prev: any) => ({
-            ...prev,
-            adminLoginResponse: data
-          }));
-          
           if (response.ok) {
             console.log('Admin login successful, signing in with credentials');
             
@@ -142,20 +135,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                 
                 if (signInError) {
                   console.error('Error signing in with credentials:', signInError);
-                  setDebugInfo((prev: any) => ({
-                    ...prev,
-                    signInError
-                  }));
                   setError('Error signing in with credentials: ' + signInError.message);
                   setLoading(false);
                   return;
                 }
                 
                 console.log('Sign in successful:', signInData);
-                setDebugInfo((prev: any) => ({
-                  ...prev,
-                  signInData
-                }));
                 
                 // Redirect directly to admin dashboard
                 window.location.href = '/admin';
@@ -169,20 +154,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               
               if (signInError) {
                 console.error('Error signing in with credentials:', signInError);
-                setDebugInfo((prev: any) => ({
-                  ...prev,
-                  signInError
-                }));
                 setError('Error signing in with credentials: ' + signInError.message);
                 setLoading(false);
                 return;
               }
               
               console.log('Sign in successful:', signInData);
-              setDebugInfo((prev: any) => ({
-                ...prev,
-                signInData
-              }));
               
               // Call the success callback
               if (onSuccess) {
@@ -202,10 +179,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           }
         } catch (apiErr: any) {
           console.error('Error calling admin-login API:', apiErr);
-          setDebugInfo((prev: any) => ({
-            ...prev,
-            adminLoginException: apiErr.message
-          }));
           setError('Error connecting to the server. Please try again.');
           setLoading(false);
           return;
@@ -219,20 +192,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           .from('congregations')
           .select('id, name, pin_code, status');
         
-        // Store debug info
-        setDebugInfo({
-          allCongregations,
-          allError
-        });
-        
         // Call the direct-insert API to ensure Admin Congregation exists
         const directInsertResponse = await fetch('/api/direct-insert');
-        const directInsertData = await directInsertResponse.json();
-        
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          directInsertResponse: directInsertData
-        }));
+        await directInsertResponse.json();
         
         // Call the congregation-login API
         const response = await fetch('/api/congregation-login', {
@@ -248,11 +210,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         
         const data = await response.json();
         console.log('Congregation login API response:', data);
-        
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          congregationLoginResponse: data
-        }));
         
         if (!response.ok) {
           setError(data.error || 'Failed to login');
@@ -305,10 +262,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         }
       } catch (apiErr: any) {
         console.error('Error in login process:', apiErr);
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          loginException: apiErr.message
-        }));
         setError('Error connecting to the server. Please try again.');
         setLoading(false);
         return;
@@ -372,7 +325,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             id="pin"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter PIN code"
+            placeholder="Same as your Zoom PIN"
             required
           />
         </div>
@@ -392,13 +345,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           <a href="/request-congregation">Request Access</a>
         </div>
       </form>
-      
-      {debugInfo && (
-        <div className="debug-info">
-          <h3>Debug Information</h3>
-          <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-        </div>
-      )}
       
       <style jsx>{`
         .login-form-container {

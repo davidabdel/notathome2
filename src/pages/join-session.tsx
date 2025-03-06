@@ -237,16 +237,6 @@ const JoinSessionPage: React.FC = () => {
               </div>
             </div>
           )}
-
-          <div className="info-container">
-            <h2>What happens when you join?</h2>
-            <ul className="info-list">
-              <li>You'll be added to the active session</li>
-              <li>Your location will be tracked while the session is active</li>
-              <li>You can record "Not At Home" addresses</li>
-              <li>All participants will see updates in real-time</li>
-            </ul>
-          </div>
         </div>
       </main>
 
@@ -439,35 +429,6 @@ const JoinSessionPage: React.FC = () => {
         .join-button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
-        }
-
-        .info-container {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          padding: 1.5rem;
-        }
-
-        h2 {
-          margin-top: 0;
-          margin-bottom: 1rem;
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .info-list {
-          margin: 0;
-          padding-left: 1.5rem;
-          color: #4b5563;
-        }
-
-        .info-list li {
-          margin-bottom: 0.5rem;
-        }
-
-        .info-list li:last-child {
-          margin-bottom: 0;
         }
       `}</style>
     </div>

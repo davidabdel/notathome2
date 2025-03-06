@@ -80,7 +80,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <span className="divider">•</span>
             <Link href="/admin" className="footer-link">Admin</Link>
             <span className="divider">•</span>
-            <span className="copyright">© 2024 Not At Home</span>
+            <span className="copyright">© 2025 UConnect (International) Pty Ltd t/as nothome.app</span>
           </div>
         </footer>
       </div>

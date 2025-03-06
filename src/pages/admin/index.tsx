@@ -35,13 +35,25 @@ const fetchDashboardStatsHelper = async (supabaseClient: SupabaseClient) => {
       console.error('Error fetching user count:', userError);
     }
 
-    // Get session count
-    const { count: sessionCount, error: sessionError } = await supabaseClient
-      .from('sessions')
-      .select('id', { count: 'exact' });
-
-    if (sessionError) {
-      console.error('Error fetching session count:', sessionError);
+    // Get session count from API endpoint
+    let sessionCount = 0;
+    try {
+      const response = await fetch('/api/admin/active-sessions', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        sessionCount = data.activeSessionsCount || 0;
+        console.log(`Active sessions from API: ${sessionCount}`);
+      } else {
+        console.error('Error fetching active sessions from API:', await response.text());
+      }
+    } catch (err) {
+      console.error('Exception fetching active sessions:', err);
     }
 
     // Get pending request count using a server-side API endpoint to bypass RLS
@@ -69,7 +81,7 @@ const fetchDashboardStatsHelper = async (supabaseClient: SupabaseClient) => {
     return {
       congregationCount: congregationCount || 0,
       userCount: userCount || 0,
-      sessionCount: sessionCount || 0,
+      sessionCount: sessionCount,
       pendingRequestCount: pendingRequestCount
     };
   } catch (error) {
