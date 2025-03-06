@@ -11,6 +11,7 @@ export default function RoleSelection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
   useEffect(() => {
     const checkAuth = async () => {
@@ -40,6 +41,11 @@ export default function RoleSelection() {
           userId: session.user.id,
           email: session.user.email
         });
+        
+        // Check if user is the superadmin (david@uconnect.com.au)
+        if (session.user.email === 'david@uconnect.com.au') {
+          setIsSuperAdmin(true);
+        }
         
         // Get congregation info
         const { data: userRole, error: userRoleError } = await supabase
@@ -182,9 +188,16 @@ export default function RoleSelection() {
           <h2>{congregationName || 'No Congregation'}</h2>
           {congregationLocation && <p>{congregationLocation}</p>}
         </div>
-        <button onClick={handleChangeCongregation} className="change-congregation-btn">
-          Change Congregation
-        </button>
+        <div className="header-actions">
+          {isSuperAdmin && (
+            <Link href="/admin" className="admin-link">
+              Admin Dashboard
+            </Link>
+          )}
+          <button onClick={handleChangeCongregation} className="change-congregation-btn">
+            Change Congregation
+          </button>
+        </div>
       </header>
       
       <main>
@@ -279,6 +292,27 @@ export default function RoleSelection() {
           margin: 0;
           color: #6b7280;
           font-size: 0.875rem;
+        }
+        
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        
+        .admin-link {
+          background-color: #2563eb;
+          color: white;
+          font-size: 0.875rem;
+          font-weight: 500;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          text-decoration: none;
+          transition: background-color 0.2s;
+        }
+        
+        .admin-link:hover {
+          background-color: #1d4ed8;
         }
         
         .change-congregation-btn {
