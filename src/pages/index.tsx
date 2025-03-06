@@ -28,6 +28,13 @@ export default function Home() {
         const userId = session.user.id;
         setIsLoggedIn(true);
         
+        // Check if user is the superadmin (david@uconnect.com.au)
+        if (session.user.email === 'david@uconnect.com.au') {
+          // Redirect superadmin directly to admin dashboard
+          window.location.href = '/admin';
+          return;
+        }
+        
         // Check if user has congregation_admin role
         const { data: congregationAdminRoles } = await supabase
           .from('user_roles')
@@ -64,6 +71,14 @@ export default function Home() {
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           setIsLoggedIn(true);
+          
+          // Check if user is the superadmin (david@uconnect.com.au)
+          if (session.user.email === 'david@uconnect.com.au') {
+            // Redirect superadmin directly to admin dashboard
+            window.location.href = '/admin';
+            return;
+          }
+          
           checkUserStatus();
         } else if (event === 'SIGNED_OUT') {
           setIsLoggedIn(false);

@@ -131,6 +131,37 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             if (data.credentials) {
               const { email, password } = data.credentials;
               
+              // Check if this is the superadmin account
+              if (email === 'david@uconnect.com.au') {
+                console.log('Superadmin detected, redirecting to Admin Dashboard');
+                
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                  email,
+                  password
+                });
+                
+                if (signInError) {
+                  console.error('Error signing in with credentials:', signInError);
+                  setDebugInfo((prev: any) => ({
+                    ...prev,
+                    signInError
+                  }));
+                  setError('Error signing in with credentials: ' + signInError.message);
+                  setLoading(false);
+                  return;
+                }
+                
+                console.log('Sign in successful:', signInData);
+                setDebugInfo((prev: any) => ({
+                  ...prev,
+                  signInData
+                }));
+                
+                // Redirect directly to admin dashboard
+                window.location.href = '/admin';
+                return;
+              }
+              
               const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email,
                 password
