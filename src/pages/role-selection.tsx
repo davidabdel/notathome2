@@ -10,7 +10,6 @@ export default function RoleSelection() {
   const [congregationLocation, setCongregationLocation] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [debugInfo, setDebugInfo] = useState<any>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
   useEffect(() => {
@@ -25,7 +24,6 @@ export default function RoleSelection() {
         if (sessionError) {
           console.error("Role selection: Session error", sessionError);
           setError(`Session error: ${sessionError.message}`);
-          setDebugInfo({ sessionError });
           setLoading(false);
           return;
         }
@@ -89,7 +87,6 @@ export default function RoleSelection() {
           
           console.error("Role selection: User role error", userRoleError);
           setError(`Error fetching user role: ${userRoleError.message}`);
-          setDebugInfo({ sessionError, userRoleError });
           setLoading(false);
           return;
         }
@@ -97,7 +94,6 @@ export default function RoleSelection() {
         if (!userRole) {
           console.error("Role selection: No user role found");
           setError("No congregation role found for your account");
-          setDebugInfo({ session, noUserRole: true });
           setLoading(false);
           return;
         }
@@ -113,7 +109,6 @@ export default function RoleSelection() {
         if (congregationError) {
           console.error("Role selection: Congregation error", congregationError);
           setError(`Error fetching congregation: ${congregationError.message}`);
-          setDebugInfo({ session, userRole, congregationError });
           setLoading(false);
           return;
         }
@@ -131,12 +126,11 @@ export default function RoleSelection() {
         } else {
           console.error("Role selection: No congregation found");
           setError("Congregation not found");
-          setDebugInfo({ session, userRole, noCongregation: true });
+          setLoading(false);
         }
       } catch (err) {
         console.error('Role selection: Unexpected error:', err);
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
-        setDebugInfo({ unexpectedError: err instanceof Error ? err.message : String(err) });
       } finally {
         setLoading(false);
       }
@@ -209,12 +203,6 @@ export default function RoleSelection() {
             <div className="error-message">
               <h3>Error</h3>
               <p>{error}</p>
-              {debugInfo && (
-                <details>
-                  <summary>Debug Information</summary>
-                  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-                </details>
-              )}
               <button 
                 onClick={handleChangeCongregation} 
                 className="error-action-button"
@@ -441,26 +429,6 @@ export default function RoleSelection() {
         
         .error-message p {
           margin-bottom: 1rem;
-        }
-        
-        .error-message details {
-          margin-top: 1rem;
-          margin-bottom: 1rem;
-        }
-        
-        .error-message summary {
-          cursor: pointer;
-          color: #4b5563;
-        }
-        
-        .error-message pre {
-          margin-top: 0.5rem;
-          padding: 0.75rem;
-          background-color: #f3f4f6;
-          border-radius: 0.25rem;
-          font-size: 0.75rem;
-          overflow-x: auto;
-          color: #1f2937;
         }
         
         .error-action-button {
