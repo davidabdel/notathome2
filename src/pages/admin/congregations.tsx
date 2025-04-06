@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { supabase } from '../../../supabase/config';
 import AdminLayout from '../../components/layouts/AdminLayout';
-import { FaEdit, FaTrash, FaPlus, FaPlaceOfWorship, FaSave, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaPlaceOfWorship, FaSave, FaTimes, FaUsers } from 'react-icons/fa';
 
 interface Congregation {
   id: string;
@@ -249,6 +249,13 @@ export default function ManageCongregationsPage() {
                         </td>
                         <td>
                           <div className="table-actions">
+                            <Link 
+                              href={`/admin/congregations/${congregation.id}/admins`}
+                              className="manage-button"
+                              title="Manage Administrators"
+                            >
+                              <FaUsers />
+                            </Link>
                             <button 
                               onClick={() => handleEdit(congregation.id)}
                               className="edit-button"
@@ -344,6 +351,24 @@ export default function ManageCongregationsPage() {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        .manage-button {
+          background: #4f46e5;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          padding: 8px;
+          cursor: pointer;
+          margin-right: 8px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .manage-button:hover {
+          background: #4338ca;
+        }
+      `}</style>
     </AdminLayout>
   );
 } 

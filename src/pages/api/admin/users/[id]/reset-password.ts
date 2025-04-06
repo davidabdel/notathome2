@@ -1,15 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '../../../../../utils/adminClient';
 
-// Create a Supabase client with the service role key for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Create a Supabase admin client
+const supabaseAdmin = createAdminClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('Reset password API called with method:', req.method);
-
   // Check if the request method is allowed
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -40,8 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
     
-    console.log('Verified user:', currentUser.id);
-    
     // Check if the user is an admin
     const { data: userRoles, error: rolesError } = await supabaseAdmin
       .from('user_roles')
@@ -54,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden: User is not an admin' });
     }
     
-    // Check if the user exists
+    // Verify the target user exists
     const { data: userData, error: userDataError } = await supabaseAdmin.auth.admin.getUserById(id);
     
     if (userDataError || !userData.user) {
@@ -65,7 +58,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Send password reset email
     const { data, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
-      email: userData.user.email!,
+      email: userData.user.email as string,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_URL}/reset-password`
+      }
     });
     
     if (resetError) {
@@ -73,10 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to send password reset email' });
     }
     
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Password reset email sent successfully'
-    });
+    return res.status(200).json({ success: true, message: 'Password reset email sent successfully' });
   } catch (error) {
     console.error('Error processing request:', error);
     return res.status(500).json({ error: 'Internal server error' });
