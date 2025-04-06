@@ -121,15 +121,22 @@ export default function ManageCongregationAdminsPage() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch congregation admins');
+        let errorMessage = 'Failed to fetch congregation admins';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
       setAdmins(data.admins || []);
     } catch (err) {
       console.error('Error fetching congregation admins:', err);
-      setError('Failed to load congregation admins');
+      setError(err instanceof Error ? err.message : 'Failed to load congregation admins');
     }
   };
 
@@ -165,8 +172,15 @@ export default function ManageCongregationAdminsPage() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add congregation admin');
+        let errorMessage = 'Failed to add congregation admin';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       // Refresh admin list
@@ -216,8 +230,15 @@ export default function ManageCongregationAdminsPage() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reset password');
+        let errorMessage = 'Failed to reset password';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       // Close modal and show success message
@@ -245,16 +266,25 @@ export default function ManageCongregationAdminsPage() {
       }
       
       // Remove admin via API
-      const response = await fetch(`/api/admin/congregations/${id}/admins/${adminId}`, {
+      const response = await fetch(`/api/admin/congregations/${id}/admins`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
-        }
+        },
+        body: JSON.stringify({ adminId })
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to remove congregation admin');
+        let errorMessage = 'Failed to remove congregation admin';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       // Refresh admin list

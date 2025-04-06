@@ -60,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type: 'recovery',
       email: userData.user.email as string,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_URL}/reset-password`
+        redirectTo: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/auth/set-password`
       }
     });
     

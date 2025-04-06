@@ -127,7 +127,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       else {
         // Create a new user
         const { data: newUser, error: newUserError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${process.env.NEXT_PUBLIC_URL}/login?redirect=/admin`
+          redirectTo: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/auth/set-password`,
+          data: {
+            congregation_id: id,
+            role: 'congregation_admin'
+          }
         });
         
         if (newUserError || !newUser.user) {
@@ -155,12 +159,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       return res.status(201).json({ success: true, message: 'Congregation admin added successfully' });
     }
-    else if (req.method === 'DELETE' && req.query.adminId) {
+    else if (req.method === 'DELETE') {
       // Remove a congregation admin
-      const adminId = req.query.adminId;
+      const { adminId } = req.body;
       
-      if (typeof adminId !== 'string') {
-        return res.status(400).json({ error: 'Invalid admin ID' });
+      if (!adminId || typeof adminId !== 'string') {
+        return res.status(400).json({ error: 'Invalid or missing admin ID' });
       }
       
       // Remove the congregation_admin role for this user
