@@ -4,7 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { supabase } from '../../../supabase/config';
 import { createSession, endSession, generateSessionCode } from '../../utils/session';
-import MapSelectionModal from '../../components/MapSelectionModal';
+import EnhancedMapSelectionModal from '../../components/EnhancedMapSelectionModal';
 import ShareSessionModal from '../../components/ShareSessionModal';
 import ShareSessionDataModal from '../../components/ShareSessionDataModal';
 
@@ -804,7 +804,7 @@ export default function GroupOverseerDashboard() {
       </div>
       
       {/* Map Selection Modal */}
-      <MapSelectionModal
+      <EnhancedMapSelectionModal
         isOpen={isMapModalOpen}
         onClose={() => setIsMapModalOpen(false)}
         onSelectMap={handleCreateSessionWithMap}
