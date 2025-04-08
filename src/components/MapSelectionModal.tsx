@@ -121,11 +121,12 @@ const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
           background-color: white;
           border-radius: 0.5rem;
           padding: 1.5rem;
-          width: 90%;
-          max-width: 500px;
+          width: 95%;
+          max-width: 550px;
           max-height: 90vh;
           overflow-y: auto;
           position: relative;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
         
         .close-button {
@@ -155,29 +156,36 @@ const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
         .map-grid {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          gap: 0.5rem;
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
         }
         
         .map-button {
+          /* Updated button styles for better visibility and interaction */
           background-color: white;
           border: 1px solid #d1d5db;
           border-radius: 0.375rem;
-          padding: 0.75rem 0;
-          font-size: 1rem;
+          padding: 1rem 0;
+          font-size: 1.125rem;
+          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s;
+          height: 3.5rem !important; /* Force height */
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
         .map-button:hover {
           background-color: #f3f4f6;
+          border-color: #9ca3af;
         }
         
         .map-button.selected {
-          background-color: #d9f99d;
-          border-color: #84cc16;
-          color: #365314;
-          font-weight: 500;
+          background-color: #4f46e5 !important; /* Force selected color */
+          border-color: #4f46e5 !important;
+          color: white !important;
+          font-weight: 600;
         }
         
         .modal-actions {
@@ -203,24 +211,34 @@ const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
         }
         
         .confirm-button {
-          background-color: #d9f99d;
+          background-color: #4f46e5;
           border: none;
-          color: #365314;
+          color: white;
           font-size: 0.875rem;
           font-weight: 500;
-          padding: 0.5rem 1rem;
+          padding: 0.75rem 1.25rem;
           border-radius: 0.375rem;
           cursor: pointer;
           transition: all 0.2s;
         }
         
         .confirm-button:hover:not(:disabled) {
-          background-color: #bef264;
+          background-color: #4338ca;
         }
         
         .confirm-button:disabled {
           opacity: 0.7;
           cursor: not-allowed;
+        }
+        
+        @media (max-width: 640px) {
+          .map-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+          
+          .map-button {
+            height: 3.75rem;
+          }
         }
       `}</style>
     </div>

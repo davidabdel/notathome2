@@ -4,6 +4,13 @@ import { useEffect } from 'react';
 import AddToHomeScreen from '../components/AddToHomeScreen';
 import { setupExpirationChecker } from '../utils/sessionExpiration';
 import '../styles/globals.css';
+import { loadEmailConfigFromDatabase } from '../utils/load-env-config';
+
+// Load email configuration on server startup
+if (typeof window === 'undefined') {
+  loadEmailConfigFromDatabase()
+    .catch(err => console.error('Error loading email config:', err));
+}
 
 function MyApp({ Component, pageProps }: AppProps) {
   // Set up session expiration checker

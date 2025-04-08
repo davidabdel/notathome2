@@ -562,6 +562,45 @@ export default function GroupOverseerDashboard() {
     }
   };
   
+  const handleJoinSessionFromDashboard = async (sessionId: string) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Get the current user session
+      const { data: { session: userSession } } = await supabase.auth.getSession();
+      
+      if (!userSession) {
+        setError('You must be logged in to join a session.');
+        setLoading(false);
+        return;
+      }
+      
+      // Record the participant joining
+      const { error: participantError } = await supabase
+        .from('session_participants')
+        .insert({
+          session_id: sessionId,
+          user_id: userSession.user.id,
+          joined_at: new Date().toISOString()
+        });
+      
+      if (participantError) {
+        console.error('Error recording participant:', participantError);
+        setError('Failed to join session. Please try again.');
+        setLoading(false);
+        return;
+      }
+      
+      // Redirect to the session page
+      router.push(`/session/${sessionId}`);
+    } catch (err) {
+      console.error('Error joining session:', err);
+      setError('Failed to join session. Please try again.');
+      setLoading(false);
+    }
+  };
+  
   if (loading) {
     return (
       <div className="loading-container">
@@ -778,6 +817,12 @@ export default function GroupOverseerDashboard() {
                           {new Date(session.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </div>
                         <div className="col-actions">
+                          <button 
+                            className="join-session-btn-small"
+                            onClick={() => handleJoinSessionFromDashboard(session.id)}
+                          >
+                            Join Session
+                          </button>
                           <button 
                             className="end-session-btn-small"
                             onClick={() => handleEndAnySession(session.id)}
@@ -1271,6 +1316,7 @@ export default function GroupOverseerDashboard() {
           width: 30%;
           display: flex;
           justify-content: flex-end;
+          align-items: center;
         }
         
         .end-session-btn-small {
@@ -1278,8 +1324,8 @@ export default function GroupOverseerDashboard() {
           color: white;
           border: none;
           border-radius: 0.375rem;
-          padding: 0.375rem 0.75rem;
-          font-size: 0.75rem;
+          padding: 0.25rem 0.5rem;
+          font-size: 0.7rem;
           font-weight: 500;
           cursor: pointer;
           transition: background-color 0.2s;
@@ -1287,6 +1333,23 @@ export default function GroupOverseerDashboard() {
         
         .end-session-btn-small:hover {
           background-color: #dc2626;
+        }
+        
+        .join-session-btn-small {
+          background-color: #10b981;
+          color: white;
+          border: none;
+          border-radius: 0.375rem;
+          padding: 0.375rem 0.75rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-right: 0.5rem;
+        }
+        
+        .join-session-btn-small:hover {
+          background-color: #059669;
         }
         
         .important-notice {
@@ -1349,6 +1412,12 @@ export default function GroupOverseerDashboard() {
           .end-session-btn-small {
             padding: 0.25rem 0.5rem;
             font-size: 0.7rem;
+          }
+          
+          .join-session-btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            margin-right: 0.3rem;
           }
           
           .important-notice {

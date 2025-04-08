@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '../../../supabase/config';
+import { sendCongregationRequestNotification } from '../../utils/email';
 
 interface CongregationRequest {
   name: string;
@@ -36,6 +37,15 @@ export default async function handler(
     if (error) {
       console.error('Error submitting congregation request:', error);
       return res.status(500).json({ error: error.message });
+    }
+
+    // Send email notification
+    try {
+      await sendCongregationRequestNotification(name, contact_email, pin_code);
+      console.log('Congregation request notification email sent successfully');
+    } catch (emailError) {
+      // Don't fail the request if email fails, just log the error
+      console.error('Failed to send congregation request notification email:', emailError);
     }
 
     return res.status(200).json({ 
