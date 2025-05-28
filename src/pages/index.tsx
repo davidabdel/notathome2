@@ -16,6 +16,17 @@ export default function Home() {
       try {
         setLoading(true);
         
+        // Check if Supabase credentials are available
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          console.log('Authentication disabled: Supabase credentials not available');
+          setIsLoggedIn(false);
+          setLoading(false);
+          return;
+        }
+        
         // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -66,6 +77,15 @@ export default function Home() {
     
     checkUserStatus();
     
+    // Check if Supabase credentials are available before setting up auth listener
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.log('Auth listener disabled: Supabase credentials not available');
+      return;
+    }
+    
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -105,6 +125,18 @@ export default function Home() {
 
   const handleSignOut = async () => {
     try {
+      // Check if Supabase credentials are available
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        console.log('Sign out handled locally: Supabase credentials not available');
+        setIsLoggedIn(false);
+        setIsCongregationAdmin(false);
+        setIsAdmin(false);
+        return;
+      }
+      
       await supabase.auth.signOut();
       setIsLoggedIn(false);
       setIsCongregationAdmin(false);

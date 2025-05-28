@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 // Import the supabase client from the utility file
 import { supabase } from '../utils/supabaseClient';
 import { Database } from '../types/supabase';
+import { subscribeToLocationUpdates } from '../utils/realtimeClient';
 
 // Database types
 type DbAddress = Database['public']['Tables']['not_at_home_addresses']['Row'];
@@ -87,6 +88,37 @@ const AddressList: React.FC<AddressListProps> = ({
   
   useEffect(() => {
     fetchAddresses();
+    
+    // Set up real-time subscription for new addresses
+    const unsubscribe = subscribeToLocationUpdates(sessionId, (newAddress) => {
+      console.log('Received new address via real-time subscription:', newAddress);
+      
+      // Add the new address to the list without refetching everything
+      setAddresses(currentAddresses => {
+        // Check if this address is already in our list (avoid duplicates)
+        const exists = currentAddresses.some(addr => addr.id === newAddress.id);
+        if (exists) return currentAddresses;
+        
+        // Format the new address to match our Address type
+        const formattedAddress: Address = {
+          id: newAddress.id,
+          address: newAddress.address || '',
+          created_at: newAddress.created_at,
+          session_id: newAddress.session_id,
+          block_number: newAddress.block_number || '',
+          latitude: newAddress.latitude,
+          longitude: newAddress.longitude
+        };
+        
+        // Add the new address to the beginning of the list
+        return [...currentAddresses, formattedAddress];
+      });
+    });
+    
+    // Clean up subscription when component unmounts
+    return () => {
+      unsubscribe();
+    };
   }, [sessionId, selectedBlock]);
   
   const handleDelete = async () => {

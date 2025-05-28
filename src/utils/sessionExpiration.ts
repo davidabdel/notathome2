@@ -7,6 +7,15 @@ import { endSession } from './session';
  */
 export const checkAndEndExpiredSessions = async (): Promise<number> => {
   try {
+    // Check if we're in a development environment without Supabase credentials
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.log('Skipping expired sessions check: Supabase credentials not available');
+      return 0;
+    }
+    
     console.log('Checking for expired sessions...');
     
     // Get current time
@@ -59,6 +68,15 @@ export const checkAndEndExpiredSessions = async (): Promise<number> => {
  * @returns A function to clear the interval when needed
  */
 export const setupExpirationChecker = (intervalMinutes: number = 60): () => void => {
+  // Check if we're in a development environment without Supabase credentials
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.log('Session expiration checker disabled: Supabase credentials not available');
+    return () => {}; // Return empty cleanup function
+  }
+  
   console.log(`Setting up session expiration checker to run every ${intervalMinutes} minutes`);
   
   // Run immediately on startup

@@ -191,12 +191,12 @@ export default function RequestCongregation() {
         <div className="footer-content">
           <a href="/setup-database" className="footer-link">Database Setup</a>
           <span className="divider">•</span>
-          <span className="copyright">© 2024 Not At Home</span>
+          <span className="copyright"> 2024 Not At Home</span>
         </div>
       </footer>
 
       <style jsx>{`
-        :root {
+        :global(:root) {
           --primary-color: #2563eb;
           --primary-hover: #1d4ed8;
           --success-color: #10b981;
@@ -220,6 +220,7 @@ export default function RequestCongregation() {
           background-color: var(--background-color);
           color: var(--text-color);
           font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          width: 100%;
         }
 
         main {
@@ -237,14 +238,14 @@ export default function RequestCongregation() {
           background: white;
           border-radius: 16px;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          padding: var(--spacing-xl) var(--spacing-xl);
+          padding: var(--spacing-xl) var(--spacing-lg);
           margin-top: var(--spacing-lg);
+          margin-bottom: var(--spacing-lg);
         }
 
         .header {
           margin-bottom: var(--spacing-xl);
           text-align: left;
-          width: 100%;
         }
 
         .back-link {
@@ -282,7 +283,8 @@ export default function RequestCongregation() {
         }
 
         .form-group {
-          margin-bottom: var(--spacing-xl);
+          margin-bottom: var(--spacing-lg);
+          width: 100%;
         }
 
         label {
@@ -295,13 +297,15 @@ export default function RequestCongregation() {
 
         input {
           width: 100%;
-          padding: 1rem 1.25rem;
+          padding: 0.75rem 1rem;
           border: 2px solid var(--border-color);
-          border-radius: 10px;
-          font-size: 1.125rem;
+          border-radius: 8px;
+          font-size: 1rem;
           transition: all 0.2s;
           background: var(--input-background);
           color: var(--text-color);
+          display: block;
+          box-sizing: border-box;
         }
 
         input::placeholder {
@@ -340,16 +344,20 @@ export default function RequestCongregation() {
 
         .submit-button {
           width: 100%;
-          padding: 1rem 1.5rem;
+          padding: 0.75rem 1.25rem;
           background-color: var(--primary-color);
           color: white;
           border: none;
-          border-radius: 10px;
+          border-radius: 8px;
           font-size: 1.125rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
-          margin-top: var(--spacing-lg);
+          margin-top: var(--spacing-md);
+          margin-bottom: var(--spacing-md);
+          display: block;
+          text-align: center;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .submit-button:hover:not(:disabled) {
@@ -396,9 +404,10 @@ export default function RequestCongregation() {
         }
 
         footer {
-          padding: var(--spacing-lg);
+          padding: var(--spacing-md);
           text-align: center;
           font-size: 0.875rem;
+          width: 100%;
           color: var(--text-secondary);
         }
 

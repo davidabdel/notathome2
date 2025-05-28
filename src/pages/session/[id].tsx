@@ -153,6 +153,29 @@ const SessionPage: React.FC = () => {
   const handleLocationRecorded = () => {
     // Trigger a refresh of the address list
     setRefreshAddresses(prev => prev + 1);
+    
+    // Force a fetch of the addresses immediately
+    const fetchAddressesNow = async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from('not_at_home_addresses')
+          .select('*')
+          .eq('session_id', id as string)
+          .order('created_at', { ascending: true });
+        
+        if (error) {
+          console.error('Error fetching addresses after recording:', error);
+          return;
+        }
+        
+        // Force page refresh to ensure all components update
+        window.location.reload();
+      } catch (err) {
+        console.error('Error in fetchAddressesNow:', err);
+      }
+    };
+    
+    fetchAddressesNow();
   };
 
   if (loading) {

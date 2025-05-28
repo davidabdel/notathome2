@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '../../../supabase/config';
 import { sendCongregationRequestNotification } from '../../utils/email';
+import { sendCongregationRequestWebhook } from '../../utils/webhook';
 
 interface CongregationRequest {
   name: string;
@@ -46,6 +47,19 @@ export default async function handler(
     } catch (emailError) {
       // Don't fail the request if email fails, just log the error
       console.error('Failed to send congregation request notification email:', emailError);
+    }
+
+    // Send webhook notification
+    try {
+      const webhookResult = await sendCongregationRequestWebhook(name, contact_email, pin_code);
+      if (webhookResult) {
+        console.log('Congregation request webhook notification sent successfully');
+      } else {
+        console.warn('Congregation request webhook may not have been delivered');
+      }
+    } catch (webhookError) {
+      // Don't fail the request if webhook fails, just log the error
+      console.error('Failed to send congregation request webhook notification:', webhookError);
     }
 
     return res.status(200).json({ 
