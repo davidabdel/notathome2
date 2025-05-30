@@ -318,16 +318,57 @@ export const fetchAndShareSessionData = async (
         addressesByBlock[address.block_number].push(address);
       });
       
+      // Process each block in ascending order
       Object.keys(addressesByBlock).sort((a, b) => Number(a) - Number(b)).forEach((blockNumber: string) => {
         const blockTitle = `Block ${blockNumber}`;
-        shareText += `\n\n${blockTitle}\n${'-'.repeat(blockTitle.length)}\n`;
+        shareText += `\n\n${blockTitle}\n${'_'.repeat(blockTitle.length)}\n`;
+        
+        // Group addresses by street name
+        const addressesByStreet: Record<string, number[]> = {};
         
         addressesByBlock[Number(blockNumber)].forEach((address: { address?: string; latitude?: number; longitude?: number }) => {
           if (address.address) {
-            shareText += `\n${address.address}`;
+            // Parse the address to extract house number and street name
+            const addressMatch = address.address.match(/^(\d+[A-Za-z]?)\s+(.+?)(?:\s*,\s*.+)?$/);
+            
+            if (addressMatch) {
+              const houseNumber = addressMatch[1];
+              const streetName = addressMatch[2];
+              
+              if (!addressesByStreet[streetName]) {
+                addressesByStreet[streetName] = [];
+              }
+              
+              // Convert to number for sorting if possible
+              const numericPart = houseNumber.match(/^(\d+)/);
+              if (numericPart) {
+                addressesByStreet[streetName].push(parseInt(numericPart[1], 10));
+              } else {
+                // If it's not a number (e.g., '1A'), just add it as is
+                addressesByStreet[streetName].push(NaN);
+              }
+            } else {
+              // If we can't parse the address, add it as is
+              shareText += `\n${address.address}`;
+            }
           } else if (address.latitude && address.longitude) {
             shareText += `\nLat: ${address.latitude.toFixed(6)}, Lng: ${address.longitude.toFixed(6)}`;
           }
+        });
+        
+        // Add each street with sorted house numbers
+        Object.keys(addressesByStreet).sort().forEach(streetName => {
+          shareText += `\n${streetName}`;
+          
+          // Sort house numbers in ascending order
+          const sortedNumbers = addressesByStreet[streetName].sort((a, b) => a - b);
+          
+          // Add each house number on a new line
+          sortedNumbers.forEach(number => {
+            shareText += `\n${number}`;
+          });
+          
+          shareText += '\n';
         });
       });
     } else {

@@ -158,9 +158,9 @@ export default function Home() {
       <main>
         <div className="content-container">
           <div className="header">
-            <h1 className="title">Not At Home</h1>
+            <h1 className="title">Not Home</h1>
             <p className="description">
-              ... Bearing thorough witness...
+              Efficiently track ministry territories
             </p>
           </div>
 
@@ -214,8 +214,8 @@ export default function Home() {
 
       <style jsx>{`
         :root {
-          --primary-color: #2563eb;
-          --primary-hover: #1d4ed8;
+          --primary-color: #d9f99d; /* Lighter green color */
+          --primary-hover: #bef264;
           --secondary-color: #4b5563;
           --secondary-hover: #374151;
           --text-color: #111827;
@@ -253,11 +253,17 @@ export default function Home() {
           justify-content: center;
           padding: var(--spacing-md);
           width: 100%;
+          background: linear-gradient(135deg, #f9fafb 0%, #eef2ff 100%);
         }
 
         .content-container {
           width: 100%;
           max-width: 480px;
+          background-color: white;
+          border-radius: 16px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+          padding: var(--spacing-xl) var(--spacing-lg);
+          margin-bottom: var(--spacing-lg);
         }
 
         .header {
@@ -268,17 +274,38 @@ export default function Home() {
         .title {
           margin: 0;
           font-size: var(--font-size-xxl);
-          font-weight: 700;
+          font-weight: 800;
           line-height: 1.2;
           color: var(--text-color);
           letter-spacing: -0.025em;
+          background: linear-gradient(to right, #2563eb, #7c3aed);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          text-fill-color: transparent;
+        }
+        
+        .version {
+          font-size: 1rem;
+          font-weight: 600;
+          vertical-align: super;
+          background: none;
+          -webkit-text-fill-color: #7c3aed;
+          text-fill-color: #7c3aed;
+          margin-left: 0.25rem;
         }
 
         .description {
-          margin-top: var(--spacing-xs);
+          margin-top: var(--spacing-sm);
           color: var(--text-secondary);
           font-size: var(--font-size-lg);
-          font-weight: 400;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          padding-bottom: var(--spacing-md);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          max-width: 80%;
+          margin-left: auto;
+          margin-right: auto;
         }
 
         .login-container {

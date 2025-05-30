@@ -2,6 +2,7 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useEffect } from 'react';
 import AddToHomeScreen from '../components/AddToHomeScreen';
+import FirstTimeAlert from '../components/FirstTimeAlert';
 import { setupExpirationChecker } from '../utils/sessionExpiration';
 import '../styles/globals.css';
 import { loadEmailConfigFromDatabase } from '../utils/load-env-config';
@@ -31,7 +32,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <meta name="theme-color" content="#10b981" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Not at Home" />
+        <meta name="apple-mobile-web-app-title" content="Not Home" />
         
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
@@ -41,6 +42,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       
       <Component {...pageProps} />
       <AddToHomeScreen />
+      <FirstTimeAlert version="2.0" />
       
       <style jsx global>{`
         /* Hide browser UI in standalone mode */

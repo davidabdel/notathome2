@@ -107,8 +107,15 @@ const SessionPage: React.FC = () => {
     }
   };
 
+  // Load the saved block number from localStorage when the component mounts
   useEffect(() => {
     if (!id) return;
+    
+    // Try to get the saved block number for this specific session
+    const savedBlock = localStorage.getItem(`selectedBlock_${id}`);
+    if (savedBlock) {
+      setSelectedBlock(parseInt(savedBlock, 10));
+    }
     
     fetchSessionData();
     
@@ -148,6 +155,11 @@ const SessionPage: React.FC = () => {
 
   const handleBlockSelected = (blockNumber: number) => {
     setSelectedBlock(blockNumber);
+    
+    // Save the selected block number to localStorage for this specific session
+    if (id) {
+      localStorage.setItem(`selectedBlock_${id}`, blockNumber.toString());
+    }
   };
 
   const handleLocationRecorded = () => {

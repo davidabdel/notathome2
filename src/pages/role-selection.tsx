@@ -196,7 +196,7 @@ export default function RoleSelection() {
       
       <main>
         <div className="content-container">
-          <h1 className="title">Not at Home</h1>
+          <h1 className="title">Not Home</h1>
           <p className="subtitle">Select your role to continue</p>
           
           {error && (
