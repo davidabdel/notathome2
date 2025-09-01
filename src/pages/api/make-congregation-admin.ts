@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Get the current user session
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await (supabase.auth as any).getSession();
 
     if (!session) {
       return res.status(401).json({
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check if the user has a role for this congregation
-    const { data: existingRoles, error: rolesError } = await supabase
+    const { data: existingRoles, error: rolesError } = await (supabase as any)
       .from('user_roles')
       .select('*')
       .eq('user_id', userId)
@@ -56,9 +56,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // If the user already has a role for this congregation, update it
     if (existingRoles && existingRoles.length > 0) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('user_roles')
-        .update({ role: 'congregation_admin' })
+        .update({ role: 'congregation_admin' } as any)
         .eq('user_id', userId)
         .eq('congregation_id', congregationId);
 
@@ -71,13 +71,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else {
       // If the user doesn't have a role for this congregation, insert a new one
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('user_roles')
         .insert({
           user_id: userId,
           congregation_id: congregationId,
           role: 'congregation_admin',
-        });
+        } as any);
 
       if (insertError) {
         console.error('Error inserting role:', insertError);
