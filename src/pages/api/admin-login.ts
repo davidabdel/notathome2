@@ -27,8 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const supabaseAdmin = createAdminClient();
     
     // First check if the Admin Congregation exists
-    let { data: congregation, error: checkError } = await supabaseAdmin
-      .from('congregations')
+    let { data: congregation, error: checkError } = await (supabaseAdmin
+      .from('congregations') as any)
       .select('*')
       .eq('name', 'Admin Congregation')
       .eq('status', 'active')
@@ -43,8 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // If congregation doesn't exist, create it
     if (!congregation) {
-      const { data: newCongregation, error: insertError } = await supabaseAdmin
-        .from('congregations')
+      const { data: newCongregation, error: insertError } = await (supabaseAdmin
+        .from('congregations') as any)
         .insert({
           name: 'Admin Congregation',
           pin_code: '123456',
@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Verify the PIN code
-    if (String(congregation.pin_code) !== String(pin)) {
+    if (!congregation || String(congregation.pin_code) !== String(pin)) {
       return res.status(401).json({ error: 'Invalid PIN code' });
     }
     
@@ -95,8 +95,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Add admin roles for this user
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
+    const { error: roleError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .insert([
         {
           user_id: userId,
