@@ -2,6 +2,19 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 
+interface SessionRow {
+  congregation_id: string;
+}
+
+interface TerritoryMapRow {
+  id: string;
+  map_number: number;
+  name: string | null;
+  description: string | null;
+  image_url: string | null;
+  congregation_id: string;
+}
+
 interface TerritoryMapProps {
   mapNumber: number;
 }
@@ -39,7 +52,7 @@ const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
           .from("sessions")
           .select("congregation_id")
           .eq("id", id)
-          .single();
+          .single<SessionRow>();
 
         if (sessionError || !sessionData) {
           console.error("Error fetching session:", sessionError);
@@ -55,7 +68,8 @@ const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
         const { data: maps, error: mapsError } = await supabase
           .from("territory_maps")
           .select("*")
-          .eq("congregation_id", congregationId);
+          .eq("congregation_id", congregationId)
+          .returns<TerritoryMapRow[]>();
 
         if (mapsError || !maps) {
           console.error("Error fetching maps:", mapsError);
