@@ -4,7 +4,7 @@ import { supabase } from '../../../supabase/config';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // First, check if the congregation already exists
-    const { data: existingCongregations, error: checkError } = await supabase
+    const { data: existingCongregations, error: checkError } = await (supabase as any)
       .from('congregations')
       .select('id')
       .eq('name', 'Admin Congregation');
@@ -22,13 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Try direct insert
-    const { data, error: insertError } = await supabase
+    const { data, error: insertError } = await (supabase as any)
       .from('congregations')
       .insert({
         name: 'Admin Congregation',
         pin_code: '123456',
         status: 'active'
-      })
+      } as any)
       .select();
     
     if (insertError) {
