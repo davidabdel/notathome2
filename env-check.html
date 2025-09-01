@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Environment Variables Check</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #333;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Supabase Environment Variables Check</h1>
+        <div id="results"></div>
+        
+        <h2>Connection Test</h2>
+        <button id="testConnection">Test Supabase Connection</button>
+        <div id="connectionResult"></div>
+        
+        <h2>Troubleshooting</h2>
+        <div>
+            <p>If you're seeing "undefined" for any of the required variables, you need to:</p>
+            <ol>
+                <li>Check that your <code>.env.local</code> file exists in the project root</li>
+                <li>Ensure it contains the following variables:
+                    <pre>NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key</pre>
+                </li>
+                <li>Restart your development server after making changes</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultsDiv = document.getElementById('results');
+            
+            // Check if running in Next.js environment
+            if (typeof process === 'undefined' || !process.env) {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        <p>⚠️ Environment variables check:</p>
+                        <p>Cannot access environment variables directly in the browser.</p>
+                        <p>This tool needs to be run in a Next.js page to access NEXT_PUBLIC_* variables.</p>
+                        <p>Please create a simple Next.js page that displays these variables.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Check environment variables
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
+            const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+            
+            let html = '<p>Environment variables check:</p>';
+            html += `<p>NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? '✅ Defined' : '❌ Missing'}</p>`;
+            html += `<p>NEXT_PUBLIC_SUPABASE_KEY: ${supabaseKey ? '✅ Defined' : '❌ Missing'}</p>`;
+            html += `<p>SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? '✅ Defined' : '❌ Missing'}</p>`;
+            
+            if (!supabaseUrl || !supabaseKey) {
+                html += `<p class="error">Missing required environment variables for Supabase client!</p>`;
+            } else {
+                html += `<p class="success">All required client environment variables are defined.</p>`;
+            }
+            
+            resultsDiv.innerHTML = html;
+            
+            // Test connection button
+            document.getElementById('testConnection').addEventListener('click', async function() {
+                const connectionResult = document.getElementById('connectionResult');
+                connectionResult.innerHTML = '<p>Testing connection...</p>';
+                
+                try {
+                    const response = await fetch('/api/test-supabase-connection');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        connectionResult.innerHTML = `
+                            <p class="success">✅ Connection successful!</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                    } else {
+                        connectionResult.innerHTML = `
+                            <p class="error">❌ Connection failed:</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                    }
+                } catch (error) {
+                    connectionResult.innerHTML = `
+                        <p class="error">❌ Error testing connection:</p>
+                        <pre>${error.message}</pre>
+                    `;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
