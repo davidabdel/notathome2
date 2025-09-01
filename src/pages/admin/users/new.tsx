@@ -34,8 +34,8 @@ export default function NewUserPage() {
         }
         
         // Check if user is admin
-        const { data: userRoles, error: userRolesError } = await supabase
-          .from('user_roles')
+        const { data: userRoles, error: userRolesError } = await (supabase
+          .from('user_roles') as any)
           .select('role')
           .eq('user_id', user.id)
           .eq('role', 'admin')
@@ -49,8 +49,8 @@ export default function NewUserPage() {
         setIsAdmin(true);
         
         // Fetch available congregations
-        const { data: congregations, error: congregationsError } = await supabase
-          .from('congregations')
+        const { data: congregations, error: congregationsError } = await (supabase
+          .from('congregations') as any)
           .select('id, name')
           .order('name');
         
@@ -131,8 +131,8 @@ export default function NewUserPage() {
           Object.assign(roleData, { congregation_id: congregationId });
         }
         
-        const { error: roleError } = await supabase
-          .from('user_roles')
+        const { error: roleError } = await (supabase
+          .from('user_roles') as any)
           .insert(roleData);
         
         if (roleError) {
