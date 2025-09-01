@@ -18,17 +18,17 @@ export default function CongregationAdminLogin() {
   useEffect(() => {
     const checkExistingSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await (supabase.auth as any).getSession();
         
         if (session) {
           // Check if the user has admin role
-          const { data: userRoles, error: rolesError } = await supabase
+          const { data: userRoles, error: rolesError } = await (supabase as any)
             .from('user_roles')
             .select('congregation_id, role')
             .eq('user_id', session.user.id);
           
           if (!rolesError && userRoles && userRoles.length > 0) {
-            const isAdmin = userRoles.some(role => 
+            const isAdmin = userRoles.some((role: any) => 
               role.role === 'congregation_admin' || role.role === 'admin'
             );
             
@@ -40,7 +40,7 @@ export default function CongregationAdminLogin() {
           }
           
           // User is logged in but not an admin, sign them out
-          await supabase.auth.signOut();
+          await (supabase.auth as any).signOut();
         }
       } catch (err) {
         console.error('Error checking session:', err);
@@ -71,7 +71,7 @@ export default function CongregationAdminLogin() {
     
     try {
       // Sign in with email and password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await (supabase.auth as any).signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
@@ -81,13 +81,13 @@ export default function CongregationAdminLogin() {
       }
       
       // Check if the user has admin role
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await (supabase.auth as any).getSession();
       
       if (!session) {
         throw new Error('Failed to create session');
       }
       
-      const { data: userRoles, error: rolesError } = await supabase
+      const { data: userRoles, error: rolesError } = await (supabase as any)
         .from('user_roles')
         .select('congregation_id, role')
         .eq('user_id', session.user.id);
@@ -96,13 +96,13 @@ export default function CongregationAdminLogin() {
         throw rolesError;
       }
       
-      const isAdmin = userRoles && userRoles.some(role => 
+      const isAdmin = userRoles && userRoles.some((role: any) => 
         role.role === 'congregation_admin' || role.role === 'admin'
       );
       
       if (!isAdmin) {
         // Sign out if not an admin
-        await supabase.auth.signOut();
+        await (supabase.auth as any).signOut();
         throw new Error('You do not have admin privileges');
       }
       
