@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export interface Coordinates {
   lat: number;
@@ -10,6 +11,14 @@ interface UseGeotaggingProps {
   sessionId?: string;
   enabled?: boolean;
   onError?: (error: GeolocationPositionError) => void;
+}
+
+// Define the structure of the locations table
+interface LocationRecord {
+  session_id: string;
+  latitude: number;
+  longitude: number;
+  timestamp: string;
 }
 
 export const useGeotagging = ({
@@ -130,14 +139,16 @@ export const useGeotagging = ({
   // Function to send coordinates to the server
   const sendCoordinatesToServer = async (sessionId: string, coords: Coordinates) => {
     try {
+      const locationData: LocationRecord = {
+        session_id: sessionId,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        timestamp: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('locations')
-        .insert({
-          session_id: sessionId,
-          latitude: coords.lat,
-          longitude: coords.lng,
-          timestamp: new Date().toISOString()
-        });
+        .insert(locationData as any);
       
       if (error) {
         console.error('Error sending coordinates to server:', error);
