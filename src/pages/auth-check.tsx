@@ -11,7 +11,7 @@ export default function AuthCheck() {
     const checkAuth = async () => {
       try {
         // Get current user
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+        const { data: { user: currentUser }, error: userError } = await (supabase.auth as any).getUser();
         
         if (userError) {
           throw userError;
@@ -21,7 +21,7 @@ export default function AuthCheck() {
         
         if (currentUser) {
           // Check user roles
-          const { data: userRoles, error: rolesError } = await supabase
+          const { data: userRoles, error: rolesError } = await (supabase as any)
             .from('user_roles')
             .select('role')
             .eq('user_id', currentUser.id);
@@ -31,7 +31,7 @@ export default function AuthCheck() {
           }
           
           if (userRoles) {
-            setRoles(userRoles.map(r => r.role));
+            setRoles(userRoles.map((r: any) => r.role));
           }
         }
       } catch (err) {
@@ -47,7 +47,7 @@ export default function AuthCheck() {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await (supabase.auth as any).signOut();
       if (error) throw error;
       window.location.href = '/';
     } catch (err) {
