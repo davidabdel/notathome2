@@ -24,8 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         console.log('Handling GET request for congregation requests');
         // Fetch real congregation requests from the database
-        const { data, error } = await supabaseAdmin
-          .from('congregation_requests')
+        const { data, error } = await (supabaseAdmin
+          .from('congregation_requests') as any)
           .select('*')
           .eq('status', 'pending')
           .order('created_at', { ascending: false });
@@ -63,8 +63,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (action === 'approve') {
           // Get the congregation request details
           try {
-            const { data: requestData, error: requestError } = await supabaseAdmin
-              .from('congregation_requests')
+            const { data: requestData, error: requestError } = await (supabaseAdmin
+              .from('congregation_requests') as any)
               .select('*')
               .eq('id', id)
               .single();
@@ -87,8 +87,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // Create a new congregation
             try {
-              const { data: congregationData, error: congregationError } = await supabaseAdmin
-                .from('congregations')
+              const { data: congregationData, error: congregationError } = await (supabaseAdmin
+                .from('congregations') as any)
                 .insert([
                   {
                     name: requestData.name,
@@ -96,7 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     status: 'active',
                     contact_email: requestData.contact_email // Store the contact email in the congregation
                   }
-                ])
+                ] as any)
                 .select()
                 .single();
 
@@ -114,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
               // Check if a user with this email already exists
               try {
-                const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
+                const { data: userData, error: userError } = await (supabaseAdmin.auth.admin as any).listUsers();
                 
                 if (userError) {
                   console.error('Error fetching users:', userError);
@@ -136,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   const tempPassword = randomBytes(4).toString('hex');
                   
                   try {
-                    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                    const { data: newUser, error: createError } = await (supabaseAdmin.auth.admin as any).createUser({
                       email: requestData.contact_email,
                       password: tempPassword,
                       email_confirm: true
@@ -163,8 +163,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 
                 // Assign congregation admin role to the user
                 try {
-                  const { error: roleError } = await supabaseAdmin
-                    .from('user_roles')
+                  const { error: roleError } = await (supabaseAdmin
+                    .from('user_roles') as any)
                     .insert({
                       user_id: userId,
                       congregation_id: congregationData.id,
@@ -185,8 +185,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                   // Update the request status
                   try {
-                    const { error: updateError } = await supabaseAdmin
-                      .from('congregation_requests')
+                    const { error: updateError } = await (supabaseAdmin
+                      .from('congregation_requests') as any)
                       .update({ status: 'approved' })
                       .eq('id', id);
 
@@ -248,8 +248,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } else if (action === 'reject') {
           // Update the request status
           try {
-            const { error: updateError } = await supabaseAdmin
-              .from('congregation_requests')
+            const { error: updateError } = await (supabaseAdmin
+              .from('congregation_requests') as any)
               .update({ status: 'rejected' })
               .eq('id', id);
 
