@@ -11,6 +11,25 @@ export interface Database {
           latitude?: number;
           longitude?: number;
         };
+        Insert: {
+          id?: string;
+          address?: string | null;
+          created_at?: string;
+          session_id: string;
+          block_number?: string;
+          latitude?: number;
+          longitude?: number;
+        };
+        Update: {
+          id?: string;
+          address?: string | null;
+          created_at?: string;
+          session_id?: string;
+          block_number?: string;
+          latitude?: number;
+          longitude?: number;
+        };
+      };
       congregations: {
         Row: {
           id: string;
@@ -72,25 +91,6 @@ export interface Database {
           updated_at?: string | null;
         };
       };
-        Insert: {
-          id?: string;
-          address?: string | null;
-          created_at?: string;
-          session_id: string;
-          block_number?: string;
-          latitude?: number;
-          longitude?: number;
-        };
-        Update: {
-          id?: string;
-          address?: string | null;
-          created_at?: string;
-          session_id?: string;
-          block_number?: string;
-          latitude?: number;
-          longitude?: number;
-        };
-      };
       not_at_home_addresses: {
         Row: {
           id: string;
@@ -118,6 +118,46 @@ export interface Database {
           block_number?: string;
           latitude?: number;
           longitude?: number;
+        };
+      };
+      user_roles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: string;
+        };
+      };
+      locations: {
+        Row: {
+          id: string;
+          session_id: string;
+          latitude: number;
+          longitude: number;
+          timestamp: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          latitude: number;
+          longitude: number;
+          timestamp: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          latitude?: number;
+          longitude?: number;
+          timestamp?: string;
         };
       };
     };

@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { supabase } from '../../../supabase/config';
 import AdminLayout from '../../components/layouts/AdminLayout';
 import { FaEdit, FaTrash, FaPlus, FaPlaceOfWorship, FaSave, FaTimes, FaUsers } from 'react-icons/fa';
+import { PostgrestError } from '@supabase/supabase-js';
+import { Database } from '../../types/supabase';
 
-interface Congregation {
-  id: string;
-  name: string;
-  pin_code: string;
-  status: 'active' | 'inactive';
-}
+// Define types based on our Database interface
+type Congregation = Database['public']['Tables']['congregations']['Row'];
+type CongregationInsert = Database['public']['Tables']['congregations']['Insert'];
+type CongregationUpdate = Database['public']['Tables']['congregations']['Update'];
 
 export default function ManageCongregationsPage() {
   const [congregations, setCongregations] = useState<Congregation[]>([]);
@@ -26,68 +26,51 @@ export default function ManageCongregationsPage() {
 
   // Check if user is admin and fetch congregations
   useEffect(() => {
-    const checkAdminAndFetchCongregations = async () => {
-      setLoading(true);
-      
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setError('You must be logged in to view this page');
-          setLoading(false);
-          return;
-        }
-        
-        // Check if user is admin
-        const { data: userRoles, error: userRolesError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-        
-        if (userRolesError || !userRoles) {
-          setError('You do not have permission to access this page');
-          setLoading(false);
-          return;
-        }
-        
-        setIsAdmin(true);
-        
-        // Fetch congregations
-        await fetchCongregations();
-      } catch (err) {
-        console.error('Error checking admin status:', err);
-        setError('Failed to verify admin status');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    checkAdminAndFetchCongregations();
+    loadCongregations();
+    checkAdmin();
   }, []);
 
-  // Fetch congregations
-  const fetchCongregations = async () => {
+  // Check if user is admin
+  const checkAdmin = async () => {
     try {
-      console.log('Fetching congregations...');
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase
-        .from('congregations')
-        .select('*')
-        .order('name');
-      
-      if (error) {
-        throw error;
+      if (!session) {
+        setIsAdmin(false);
+        return;
       }
       
-      console.log('Congregations data:', data);
+      // Check if user has admin role
+      const { data: userRoles } = await (supabase
+        .from('user_roles') as any)
+        .select('role')
+        .eq('user_id', session.user.id);
+      
+      const adminRole = userRoles?.find(role => role.role === 'admin');
+      setIsAdmin(!!adminRole);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
+  
+  // Fetch congregations
+  const loadCongregations = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await (supabase
+        .from('congregations') as any)
+        .select('*');
+      
+      if (error) throw error;
       
       setCongregations(data || []);
-    } catch (err) {
-      console.error('Error fetching congregations:', err);
+    } catch (error) {
+      console.error('Error fetching congregations:', error);
       setError('Failed to load congregations');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,8 +108,9 @@ export default function ManageCongregationsPage() {
     try {
       console.log(`Saving congregation ${editingCongregation.id}...`);
       
-      const { error } = await supabase
-        .from('congregations')
+      // Use direct type casting to bypass TypeScript limitations
+      const { error } = await (supabase
+        .from('congregations') as any)
         .update({
           name: editingCongregation.name,
           pin_code: editingCongregation.pin_code,
@@ -139,7 +123,7 @@ export default function ManageCongregationsPage() {
       }
       
       // Refresh the congregations list
-      await fetchCongregations();
+      await loadCongregations();
       
       setSuccess('Congregation updated successfully');
       setIsEditModalOpen(false);
@@ -154,29 +138,29 @@ export default function ManageCongregationsPage() {
 
   // Handle deleting a congregation
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this congregation? This action cannot be undone.')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete this congregation?')) return;
     
     try {
-      console.log(`Deleting congregation ${id}...`);
+      setLoading(true);
+      setError('');
+      setSuccess('');
       
-      const { error } = await supabase
-        .from('congregations')
+      const { error } = await (supabase
+        .from('congregations') as any)
         .delete()
         .eq('id', id);
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       // Refresh the congregations list
-      await fetchCongregations();
+      await loadCongregations();
       
-      console.log(`Congregation ${id} deleted successfully`);
-    } catch (err) {
-      console.error('Error deleting congregation:', err);
+      setSuccess('Congregation deleted successfully');
+    } catch (error) {
+      console.error('Error deleting congregation:', error);
       setError('Failed to delete congregation');
+    } finally {
+      setLoading(false);
     }
   };
 

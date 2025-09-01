@@ -134,7 +134,7 @@ export const broadcastLocation = async (
   coordinates: { lat: number; lng: number }
 ) => {
   try {
-    const { error } = await supabaseClient.from('not_at_home_addresses').insert({
+    const { error } = await (supabaseClient.from('not_at_home_addresses') as any).insert({
       session_id: sessionId,
       latitude: coordinates.lat,
       longitude: coordinates.lng,

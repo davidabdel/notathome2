@@ -146,9 +146,9 @@ export const useGeotagging = ({
         timestamp: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('locations')
-        .insert(locationData as any);
+      const { error } = await (supabase
+        .from('locations') as any)
+        .insert(locationData);
       
       if (error) {
         console.error('Error sending coordinates to server:', error);
