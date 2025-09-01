@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const password = `Admin${Date.now()}!`;
     
     // Create a user with the admin role key
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: userData, error: userError } = await (supabaseAdmin.auth.admin as any).createUser({
       email,
       password,
       email_confirm: true

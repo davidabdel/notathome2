@@ -28,8 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Get user's role and congregation
-  const { data: userRoles, error: rolesError } = await supabase
-    .from('user_roles')
+  const { data: userRoles, error: rolesError } = await (supabase
+    .from('user_roles') as any)
     .select('congregation_id, role')
     .eq('user_id', session.user.id);
 
@@ -64,8 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const congregationId = userRoles[0].congregation_id;
 
   // Verify the map belongs to the user's congregation
-  const { data: map, error: mapError } = await supabase
-    .from('territory_maps')
+  const { data: map, error: mapError } = await (supabase
+    .from('territory_maps') as any)
     .select('*')
     .eq('id', id)
     .single();
@@ -125,9 +125,9 @@ async function updateMap(req: NextApiRequest, res: NextApiResponse, mapId: strin
       updateData.image_url = image_url;
     }
 
-    const { data, error } = await supabase
-      .from('territory_maps')
-      .update(updateData)
+    const { data, error } = await (supabase
+      .from('territory_maps') as any)
+      .update(updateData as any)
       .eq('id', mapId)
       .select()
       .single();
@@ -159,8 +159,8 @@ async function deleteMap(
 ) {
   try {
     // Delete the map record
-    const { error: deleteError } = await supabase
-      .from('territory_maps')
+    const { error: deleteError } = await (supabase
+      .from('territory_maps') as any)
       .delete()
       .eq('id', mapId);
 
@@ -177,9 +177,9 @@ async function deleteMap(
         const filePath = pathParts.slice(pathParts.indexOf('maps') + 1).join('/');
         
         if (filePath) {
-          await supabase.storage
-            .from('maps')
-            .remove([filePath]);
+          await (supabase.storage
+            .from('maps') as any)
+            .remove([filePath] as any);
         }
       } catch (storageError) {
         // Log but don't fail if storage deletion fails

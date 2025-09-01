@@ -36,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Check if the user is an admin
-    const { data: userRoles, error: rolesError } = await supabaseAdmin
-      .from('user_roles')
+    const { data: userRoles, error: rolesError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .select('role')
       .eq('user_id', currentUser.id)
       .eq('role', 'admin');
@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Verify the target user exists
-    const { data: userData, error: userDataError } = await supabaseAdmin.auth.admin.getUserById(id);
+    const { data: userData, error: userDataError } = await (supabaseAdmin.auth.admin as any).getUserById(id);
     
     if (userDataError || !userData.user) {
       console.error('Error fetching user:', userDataError);
@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Send password reset email
-    const { data, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+    const { data, error: resetError } = await (supabaseAdmin.auth.admin as any).generateLink({
       type: 'recovery',
       email: userData.user.email as string,
       options: {

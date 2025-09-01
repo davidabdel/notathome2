@@ -18,8 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Get user's role and congregation
-  const { data: userRoles, error: rolesError } = await supabase
-    .from('user_roles')
+  const { data: userRoles, error: rolesError } = await (supabase
+    .from('user_roles') as any)
     .select('congregation_id, role')
     .eq('user_id', session.user.id);
 
@@ -74,8 +74,8 @@ async function getMaps(
   congregationId: string
 ) {
   try {
-    const { data, error } = await supabase
-      .from('territory_maps')
+    const { data, error } = await (supabase
+      .from('territory_maps') as any)
       .select('*')
       .eq('congregation_id', congregationId)
       .order('name');
@@ -111,13 +111,13 @@ async function createMap(
       });
     }
 
-    const { data, error } = await supabase
-      .from('territory_maps')
+    const { data, error } = await (supabase
+      .from('territory_maps') as any)
       .insert({
         name,
         image_url,
         congregation_id: congregationId,
-      })
+      } as any)
       .select()
       .single();
 

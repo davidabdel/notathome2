@@ -43,8 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Verified user:', currentUser.id);
     
     // Check if the user is an admin
-    const { data: userRoles, error: rolesError } = await supabaseAdmin
-      .from('user_roles')
+    const { data: userRoles, error: rolesError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .select('role')
       .eq('user_id', currentUser.id)
       .eq('role', 'admin');
@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Check if the user exists
-    const { data: userData, error: userDataError } = await supabaseAdmin.auth.admin.getUserById(id);
+    const { data: userData, error: userDataError } = await (supabaseAdmin.auth.admin as any).getUserById(id);
     
     if (userDataError || !userData.user) {
       console.error('Error fetching user:', userDataError);
@@ -70,8 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Delete existing roles
-    const { error: deleteRolesError } = await supabaseAdmin
-      .from('user_roles')
+    const { error: deleteRolesError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .delete()
       .eq('user_id', id);
     
@@ -88,9 +88,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }));
     
     if (roleInserts.length > 0) {
-      const { error: insertRolesError } = await supabaseAdmin
-        .from('user_roles')
-        .insert(roleInserts);
+      const { error: insertRolesError } = await (supabaseAdmin
+        .from('user_roles') as any)
+        .insert(roleInserts as any);
       
       if (insertRolesError) {
         console.error('Error inserting user roles:', insertRolesError);

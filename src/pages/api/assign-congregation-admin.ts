@@ -35,8 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Assigning admin role for:', { email, congregationName });
     
     // Find the congregation by name
-    const { data: congregation, error: congregationError } = await supabaseAdmin
-      .from('congregations')
+    const { data: congregation, error: congregationError } = await (supabaseAdmin
+      .from('congregations') as any)
       .select('id, name')
       .eq('name', congregationName)
       .single();
@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Find the user by email
-    const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: { users }, error: userError } = await (supabaseAdmin.auth.admin as any).listUsers();
     
     if (userError) {
       console.error('Error listing users:', userError);
@@ -71,8 +71,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Check if the user already has a role for this congregation
-    const { data: existingRoles, error: rolesError } = await supabaseAdmin
-      .from('user_roles')
+    const { data: existingRoles, error: rolesError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .select('*')
       .eq('user_id', user.id)
       .eq('congregation_id', congregation.id);
@@ -87,8 +87,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // If the user already has a role for this congregation, update it
     if (existingRoles && existingRoles.length > 0) {
-      const { error: updateError } = await supabaseAdmin
-        .from('user_roles')
+      const { error: updateError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .update({ role: 'congregation_admin' })
         .eq('user_id', user.id)
         .eq('congregation_id', congregation.id);
@@ -102,8 +102,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else {
       // If the user doesn't have a role for this congregation, insert a new one
-      const { error: insertError } = await supabaseAdmin
-        .from('user_roles')
+      const { error: insertError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .insert({
           user_id: user.id,
           congregation_id: congregation.id,

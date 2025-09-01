@@ -36,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Get user's role and congregation
-  const { data: userRoles, error: rolesError } = await supabase
-    .from('user_roles')
+  const { data: userRoles, error: rolesError } = await (supabase
+    .from('user_roles') as any)
     .select('congregation_id, role')
     .eq('user_id', session.user.id);
 
@@ -108,20 +108,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const filePath = `territory-maps/${congregationId}/${fileName}`;
     
     // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from('maps')
+    const { error: uploadError } = await (supabase.storage
+      .from('maps') as any)
       .upload(filePath, fileData, {
         contentType: file.mimetype || 'image/jpeg',
-      });
+      } as any);
     
     if (uploadError) {
       throw uploadError;
     }
     
     // Get the public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('maps')
-      .getPublicUrl(filePath);
+    const { data: { publicUrl } } = (supabase.storage
+      .from('maps') as any)
+      .getPublicUrl(filePath as any);
     
     // Return the URL
     return res.status(200).json({

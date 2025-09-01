@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Check if the user exists
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: userData, error: userError } = await (supabaseAdmin.auth.admin as any).listUsers();
     
     if (userError) {
       console.error('Error fetching users:', userError);
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (existingUser) {
       // User exists, send password reset email
-      const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await (supabaseAdmin.auth as any).resetPasswordForEmail(email, {
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/congregation/reset-password`,
       });
       
@@ -50,8 +50,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } else {
       // Check if this email is associated with a congregation
-      const { data: congregationData, error: congregationError } = await supabaseAdmin
-        .from('congregations')
+      const { data: congregationData, error: congregationError } = await (supabaseAdmin
+        .from('congregations') as any)
         .select('id, name')
         .eq('contact_email', email);
       
@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Create a new user and send a password reset email
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      const { data: newUser, error: createError } = await (supabaseAdmin.auth.admin as any).createUser({
         email,
         email_confirm: true,
         password: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) // Random password
@@ -80,8 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Assign congregation admin role
-      const { error: roleError } = await supabaseAdmin
-        .from('user_roles')
+      const { error: roleError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .insert({
           user_id: newUser.user.id,
           congregation_id: congregationData[0].id,
@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Send password reset email to the newly created user
-      const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await (supabaseAdmin.auth as any).resetPasswordForEmail(email, {
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/congregation/reset-password`,
       });
       

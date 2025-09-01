@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Check if the user exists
-    const { data: userData, error: userDataError } = await supabaseAdmin.auth.admin.getUserById(id);
+    const { data: userData, error: userDataError } = await (supabaseAdmin.auth.admin as any).getUserById(id);
     
     if (userDataError || !userData.user) {
       console.error('Error fetching user:', userDataError);
@@ -68,8 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Delete user roles first
-    const { error: deleteRolesError } = await supabaseAdmin
-      .from('user_roles')
+    const { error: deleteRolesError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .delete()
       .eq('user_id', id);
     
@@ -79,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Delete the user
-    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    const { error: deleteUserError } = await (supabaseAdmin.auth.admin as any).deleteUser(id);
     
     if (deleteUserError) {
       console.error('Error deleting user:', deleteUserError);

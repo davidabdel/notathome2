@@ -112,8 +112,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Check if territory_maps table exists
     try {
-      const { data: territoryMapsData, error: territoryMapsError } = await supabase
-        .from('territory_maps')
+      const { data: territoryMapsData, error: territoryMapsError } = await (supabase
+        .from('territory_maps') as any)
         .select('id')
         .limit(1);
       
@@ -128,8 +128,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Check if user_roles table exists
     try {
-      const { data: userRolesData, error: userRolesError } = await supabase
-        .from('user_roles')
+      const { data: userRolesData, error: userRolesError } = await (supabase
+        .from('user_roles') as any)
         .select('id')
         .limit(1);
       
@@ -144,8 +144,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Check if congregations table exists and has contact_email and map_count columns
     try {
-      const { data: congregationsData, error: congregationsError } = await supabase
-        .from('congregations')
+      const { data: congregationsData, error: congregationsError } = await (supabase
+        .from('congregations') as any)
         .select('id')
         .limit(1);
       
@@ -235,8 +235,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Check if maps storage bucket exists
     try {
-      const { data: buckets, error: bucketsError } = await supabase
-        .storage
+      const { data: buckets, error: bucketsError } = await (supabase
+        .storage as any)
         .listBuckets();
       
       if (!bucketsError && buckets) {

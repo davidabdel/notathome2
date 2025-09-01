@@ -32,8 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Check if maps storage bucket exists
     console.log('Checking maps storage bucket...');
-    const { data: buckets, error: bucketsError } = await supabase
-      .storage
+    const { data: buckets, error: bucketsError } = await (supabase
+      .storage as any)
       .listBuckets();
     
     if (bucketsError) {
@@ -58,8 +58,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Create maps storage bucket
     console.log('Creating maps storage bucket...');
-    const { error: createBucketError } = await supabase
-      .storage
+    const { error: createBucketError } = await (supabase
+      .storage as any)
       .createBucket('maps', {
         public: true,
         allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
@@ -79,10 +79,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Create public access policy for the bucket
     console.log('Creating public access policy for maps bucket...');
-    const { error: policyError } = await supabase
+    const { error: policyError } = await (supabase
       .storage
-      .from('maps')
-      .createSignedUrl('dummy.txt', 60);
+      .from('maps') as any)
+      .createSignedUrl('dummy.txt', 60 as any);
     
     if (policyError && policyError.message !== 'The resource was not found') {
       console.error('Error creating policy for maps bucket:', policyError);

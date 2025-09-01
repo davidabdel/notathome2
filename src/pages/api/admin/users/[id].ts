@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Get the user details
-    const { data: userData, error: userDataError } = await supabaseAdmin.auth.admin.getUserById(id);
+    const { data: userData, error: userDataError } = await (supabaseAdmin.auth.admin as any).getUserById(id);
     
     if (userDataError || !userData.user) {
       console.error('Error fetching user:', userDataError);
@@ -63,8 +63,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Get user roles
-    const { data: roles, error: rolesDataError } = await supabaseAdmin
-      .from('user_roles')
+    const { data: roles, error: rolesDataError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .select('role, congregation_id')
       .eq('user_id', id);
     
@@ -80,8 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (roles && roles.length > 0 && roles[0].congregation_id) {
       congregationId = roles[0].congregation_id;
       
-      const { data: congregation, error: congregationError } = await supabaseAdmin
-        .from('congregations')
+      const { data: congregation, error: congregationError } = await (supabaseAdmin
+        .from('congregations') as any)
         .select('name')
         .eq('id', congregationId)
         .single();

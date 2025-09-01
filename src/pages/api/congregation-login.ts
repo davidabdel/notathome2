@@ -101,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           // First create the user
           try {
-            const { data: userData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+            const { data: userData, error: createUserError } = await (supabaseAdmin.auth.admin as any).createUser({
               email: sessionEmail,
               password: sessionPassword,
               email_confirm: true
@@ -137,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
             
             // Now sign in with the created user to get a session
-            const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+            const { data: signInData, error: signInError } = await (supabaseAdmin.auth as any).signInWithPassword({
               email: sessionEmail,
               password: sessionPassword
             });

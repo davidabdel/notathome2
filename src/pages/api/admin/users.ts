@@ -11,15 +11,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     try {
       // Get all users from auth.users
-      const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+      const { data: authUsers, error: authError } = await (supabaseAdmin.auth.admin as any).listUsers();
       
       if (authError) {
         throw authError;
       }
       
       // Get user roles from the user_roles table
-      const { data: userRoles, error: rolesError } = await supabaseAdmin
-        .from('user_roles')
+      const { data: userRoles, error: rolesError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .select('user_id, role, congregation_id');
       
       if (rolesError) {
@@ -27,8 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Get congregations
-      const { data: congregations, error: congError } = await supabaseAdmin
-        .from('congregations')
+      const { data: congregations, error: congError } = await (supabaseAdmin
+        .from('congregations') as any)
         .select('id, name');
       
       if (congError) {
@@ -36,15 +36,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Map auth users to our User interface
-      const users = authUsers.users.map(authUser => {
+      const rolesArr = (userRoles as any[]) || [];
+      const congsArr = (congregations as any[]) || [];
+
+      const users = authUsers.users.map((authUser: any) => {
         // Find role for this user
-        const userRole = userRoles?.find(role => role.user_id === authUser.id);
-        
+        const userRole = rolesArr.find((role: any) => role.user_id === authUser.id);
+
         // Find congregation for this user
-        const congregation = userRole?.congregation_id 
-          ? congregations?.find(cong => cong.id === userRole.congregation_id)
+        const congregation = userRole?.congregation_id
+          ? congsArr.find((cong: any) => cong.id === userRole.congregation_id)
           : null;
-        
+
         return {
           id: authUser.id,
           email: authUser.email || 'No Email',
@@ -71,8 +74,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`Deleting user ${userId}...`);
       
       // First delete user roles
-      const { error: rolesError } = await supabaseAdmin
-        .from('user_roles')
+      const { error: rolesError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .delete()
         .eq('user_id', userId);
       
@@ -82,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Then delete the user from auth
-      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      const { error: authError } = await (supabaseAdmin.auth.admin as any).deleteUser(userId);
       
       if (authError) {
         throw authError;

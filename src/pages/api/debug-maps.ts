@@ -23,8 +23,8 @@ export default async function handler(
 
   try {
     // Get session data
-    const { data: sessionData, error: sessionError } = await supabaseAdmin
-      .from('sessions')
+    const { data: sessionData, error: sessionError } = await (supabaseAdmin
+      .from('sessions') as any)
       .select('*, congregations(id, name)')
       .eq('id', sessionId)
       .single();
@@ -41,8 +41,8 @@ export default async function handler(
     }
 
     // Get maps for this congregation
-    const { data: mapsData, error: mapsError } = await supabaseAdmin
-      .from('territory_maps')
+    const { data: mapsData, error: mapsError } = await (supabaseAdmin
+      .from('territory_maps') as any)
       .select('*')
       .eq('congregation_id', sessionData.congregation_id);
 
@@ -54,9 +54,9 @@ export default async function handler(
     }
 
     // Get files from storage
-    const { data: filesData, error: filesError } = await supabaseAdmin
+    const { data: filesData, error: filesError } = await (supabaseAdmin
       .storage
-      .from('maps')
+      .from('maps') as any)
       .list();
 
     if (filesError) {

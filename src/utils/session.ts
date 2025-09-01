@@ -47,8 +47,8 @@ export const createSession = async (
     
     // First check if the sessions table exists
     try {
-      const { error: tableCheckError } = await supabase
-        .from('sessions')
+      const { error: tableCheckError } = await (supabase
+        .from('sessions') as any)
         .select('id')
         .limit(1);
       
@@ -72,9 +72,9 @@ export const createSession = async (
     
     console.log('Inserting session with data:', sessionData);
     
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert(sessionData)
+    const { data, error } = await (supabase
+      .from('sessions') as any)
+      .insert(sessionData as any)
       .select()
       .single();
     
@@ -95,8 +95,8 @@ export const createSession = async (
 export const joinSession = async (sessionCode: string, userId: string): Promise<SessionData | null> => {
   try {
     // First, find the session by code
-    const { data: session, error: sessionError } = await supabase
-      .from('sessions')
+    const { data: session, error: sessionError } = await (supabase
+      .from('sessions') as any)
       .select('*')
       .eq('code', sessionCode)
       .eq('is_active', true)
@@ -109,13 +109,13 @@ export const joinSession = async (sessionCode: string, userId: string): Promise<
     }
     
     // Then, add the user to the session participants
-    const { error: participantError } = await supabase
-      .from('session_participants')
+    const { error: participantError } = await (supabase
+      .from('session_participants') as any)
       .insert({
         session_id: session.id,
         user_id: userId,
         joined_at: new Date().toISOString()
-      });
+      } as any);
     
     if (participantError) {
       console.error('Error adding participant:', participantError);
@@ -146,8 +146,8 @@ export const endSession = async (sessionId: string): Promise<boolean> => {
       // Fallback approach if RPC fails - delete in correct order
       try {
         // 1. Delete session participants first (they reference the session)
-        const { error: participantsDeleteError } = await supabase
-          .from('session_participants')
+        const { error: participantsDeleteError } = await (supabase
+          .from('session_participants') as any)
           .delete()
           .eq('session_id', sessionId);
         
@@ -157,8 +157,8 @@ export const endSession = async (sessionId: string): Promise<boolean> => {
         }
         
         // 2. Delete addresses next (they reference the session)
-        const { error: addressesDeleteError } = await supabase
-          .from('not_at_home_addresses')
+        const { error: addressesDeleteError } = await (supabase
+          .from('not_at_home_addresses') as any)
           .delete()
           .eq('session_id', sessionId);
         
@@ -168,8 +168,8 @@ export const endSession = async (sessionId: string): Promise<boolean> => {
         }
         
         // 3. Finally delete the session itself
-        const { error: sessionDeleteError } = await supabase
-          .from('sessions')
+        const { error: sessionDeleteError } = await (supabase
+          .from('sessions') as any)
           .delete()
           .eq('id', sessionId);
         
@@ -184,8 +184,8 @@ export const endSession = async (sessionId: string): Promise<boolean> => {
     }
     
     // Verify the session was deleted
-    const { data: verifySession, error: verifyError } = await supabase
-      .from('sessions')
+    const { data: verifySession, error: verifyError } = await (supabase
+      .from('sessions') as any)
       .select('id')
       .eq('id', sessionId)
       .single();
@@ -250,8 +250,8 @@ export const fetchAndShareSessionData = async (
     } else {
       // Otherwise fetch the data
       // Fetch all addresses for this session
-      const { data: fetchedAddresses, error: addressesError } = await supabase
-        .from('not_at_home_addresses')
+      const { data: fetchedAddresses, error: addressesError } = await (supabase
+        .from('not_at_home_addresses') as any)
         .select('*')
         .eq('session_id', sessionId)
         .order('block_number', { ascending: true })
@@ -266,8 +266,8 @@ export const fetchAndShareSessionData = async (
       console.log('Addresses fetched:', addresses ? addresses.length : 0);
       
       // Get session details
-      const { data: fetchedSession, error: sessionError } = await supabase
-        .from('sessions')
+      const { data: fetchedSession, error: sessionError } = await (supabase
+        .from('sessions') as any)
         .select('*')
         .eq('id', sessionId)
         .single();
