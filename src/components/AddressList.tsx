@@ -4,6 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabaseClient';
 import { Database } from '../types/supabase';
 import { subscribeToLocationUpdates } from '../utils/realtimeClient';
+import { updateNotAtHomeAddress } from '../utils/dbOperations';
 
 // Database types
 type DbAddress = Database['public']['Tables']['not_at_home_addresses']['Row'];
@@ -269,14 +270,12 @@ const AddressList: React.FC<AddressListProps> = ({
         return;
       }
       
-      // Use a direct type assertion on the update object
-      const { error: updateError } = await supabase
-        .from('not_at_home_addresses')
-        .update({
-          address: formattedAddress.trim(),
-          block_number: addressFields.block_number
-        } as any)
-        .eq('id', editingId);
+      // Use our utility function to update the address
+      const { error: updateError } = await updateNotAtHomeAddress(
+        editingId,
+        formattedAddress.trim(),
+        addressFields.block_number
+      );
       
       if (updateError) {
         setError('Error updating address');
