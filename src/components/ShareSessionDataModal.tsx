@@ -3,6 +3,10 @@ import { fetchAndShareSessionData, endSession } from '../utils/session';
 import { supabase } from '../utils/supabaseClient';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+interface SessionData {
+  code: string;
+}
+
 interface ShareSessionDataModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,7 +25,7 @@ const ShareSessionDataModal: React.FC<ShareSessionDataModalProps> = ({
   const [isEnding, setIsEnding] = useState(false);
   
   // Store session data when modal opens
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [sessionData, setSessionData] = useState<{session?: SessionData} | null>(null);
   const [fetchingData, setFetchingData] = useState(false);
   const [sessionCode, setSessionCode] = useState<string>('');
   
@@ -36,12 +40,11 @@ const ShareSessionDataModal: React.FC<ShareSessionDataModalProps> = ({
       const fetchSessionData = async () => {
         try {
           // Fetch the session code
-          // @ts-ignore - Supabase client is imported from utils
           const { data: sessionData, error: sessionError } = await supabase
             .from('sessions')
             .select('code')
             .eq('id', sessionId)
-            .single();
+            .single<SessionData>();
           
           if (sessionError) {
             console.error('Error fetching session code:', sessionError);
