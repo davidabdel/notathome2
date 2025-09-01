@@ -4,7 +4,7 @@ import { supabase } from '../../../supabase/config';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Create the RPC function to disable RLS for congregations
-    const { error } = await supabase.rpc('exec_sql', {
+    const { error } = await (supabase as any).rpc('exec_sql', {
       sql_query: `
         CREATE OR REPLACE FUNCTION disable_rls_for_congregations()
         RETURNS void AS $$
@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Create the RPC function to create the disable_rls function
-    const { error: createFnError } = await supabase.rpc('exec_sql', {
+    const { error: createFnError } = await (supabase as any).rpc('exec_sql', {
       sql_query: `
         CREATE OR REPLACE FUNCTION create_disable_rls_function()
         RETURNS void AS $$
@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Create the exec_sql function if it doesn't exist
-    const { error: execSqlError } = await supabase.rpc('exec_sql', {
+    const { error: execSqlError } = await (supabase as any).rpc('exec_sql', {
       sql_query: `
         CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
         RETURNS void AS $$
