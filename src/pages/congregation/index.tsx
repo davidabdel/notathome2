@@ -26,7 +26,7 @@ export default function CongregationDashboard() {
     const fetchData = async () => {
       try {
         // Get the current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await (supabase.auth as any).getUser();
         
         if (userError || !user) {
           console.log("No user found, redirecting to login");
@@ -35,7 +35,7 @@ export default function CongregationDashboard() {
         }
         
         // Get user's congregation
-        const { data: userRolesData, error: rolesError } = await supabase
+        const { data: userRolesData, error: rolesError } = await (supabase as any)
           .from('user_roles')
           .select('congregation_id, role')
           .eq('user_id', user.id);
@@ -49,13 +49,13 @@ export default function CongregationDashboard() {
         if (!userRolesData || userRolesData.length === 0) {
           console.log("No user roles found, redirecting to congregation login");
           // Sign out the user since they don't have any roles
-          await supabase.auth.signOut();
+          await (supabase.auth as any).signOut();
           router.push('/login');
           return;
         }
         
         // Check if user is a congregation admin
-        const isUserAdmin = userRolesData.some(role => role.role === 'congregation_admin' || role.role === 'admin');
+        const isUserAdmin = userRolesData.some((role: any) => role.role === 'congregation_admin' || role.role === 'admin');
         
         if (!isUserAdmin) {
           setError('You do not have permission to access this page');
@@ -67,7 +67,7 @@ export default function CongregationDashboard() {
         const congregationId = userRolesData[0].congregation_id;
         
         // Get congregation details
-        const { data: congregationData, error: congregationError } = await supabase
+        const { data: congregationData, error: congregationError } = await (supabase as any)
           .from('congregations')
           .select('*')
           .eq('id', congregationId)
