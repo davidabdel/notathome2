@@ -301,7 +301,7 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
     console.log('Saving map with data:', { name, description, imageUrl });
 
     try {
-      const { data, error: updateError } = await supabase
+      const { data, error: updateError } = await (supabase as any)
         .from('territory_maps')
         .update({
           name,
@@ -455,7 +455,7 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
       
       // Immediately save the image URL to the database
       try {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await (supabase as any)
           .from('territory_maps')
           .update({
             image_url: publicUrl,
