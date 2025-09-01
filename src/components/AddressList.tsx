@@ -269,13 +269,13 @@ const AddressList: React.FC<AddressListProps> = ({
         return;
       }
       
-      // Using type assertion to bypass TypeScript error
-      const { error: updateError } = await (supabase
+      // Use a direct type assertion on the update object
+      const { error: updateError } = await supabase
         .from('not_at_home_addresses')
         .update({
           address: formattedAddress.trim(),
           block_number: addressFields.block_number
-        }) as any)
+        } as any)
         .eq('id', editingId);
       
       if (updateError) {
