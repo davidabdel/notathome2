@@ -18,17 +18,17 @@ export default function CongregationAdminSignup() {
   useEffect(() => {
     const checkExistingSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await (supabase.auth as any).getSession();
         
         if (session) {
           // Check if the user has admin role
-          const { data: userRoles, error: rolesError } = await supabase
+          const { data: userRoles, error: rolesError } = await (supabase as any)
             .from('user_roles')
             .select('congregation_id, role')
             .eq('user_id', session.user.id);
           
           if (!rolesError && userRoles && userRoles.length > 0) {
-            const isAdmin = userRoles.some(role => 
+            const isAdmin = userRoles.some((role: any) => 
               role.role === 'congregation_admin' || role.role === 'admin'
             );
             
@@ -40,7 +40,7 @@ export default function CongregationAdminSignup() {
           }
           
           // User is logged in but not an admin, sign them out
-          await supabase.auth.signOut();
+          await (supabase.auth as any).signOut();
         }
       } catch (err) {
         console.error('Error checking session:', err);
@@ -56,7 +56,7 @@ export default function CongregationAdminSignup() {
         await response.json(); // Ensure Admin Congregation exists
         
         // Now fetch all active congregations
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('congregations')
           .select('id, name')
           .eq('status', 'active')
@@ -98,7 +98,7 @@ export default function CongregationAdminSignup() {
     
     try {
       // First sign up the user with email
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await (supabase.auth as any).signUp({
         email: email.trim(),
         password: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2),
         options: {
