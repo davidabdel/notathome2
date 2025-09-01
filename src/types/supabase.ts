@@ -11,6 +11,61 @@ export interface Database {
           latitude?: number;
           longitude?: number;
         };
+      congregations: {
+        Row: {
+          id: string;
+          name: string;
+          status: string;
+          contact_email?: string | null;
+          created_at?: string | null;
+          pin_code?: string | null;
+          map_count?: number | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          status: string;
+          contact_email?: string | null;
+          created_at?: string | null;
+          pin_code?: string | null;
+          map_count?: number | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          status?: string;
+          contact_email?: string | null;
+          created_at?: string | null;
+          pin_code?: string | null;
+          map_count?: number | null;
+        };
+      };
+      territory_maps: {
+        Row: {
+          id: string;
+          congregation_id: string;
+          name: string;
+          description: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          congregation_id: string;
+          name: string;
+          description?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          congregation_id?: string;
+          name?: string;
+          description?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+      };
         Insert: {
           id?: string;
           address?: string | null;

@@ -35,16 +35,16 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
     const fetchPinCode = async () => {
       if (!congregation.pin_code) {
         try {
-          const { data, error } = await supabase
+          const { data: pinData, error } = await supabase
             .from('congregations')
             .select('pin_code')
             .eq('id', congregation.id)
-            .single();
+            .single<{ pin_code: string | null }>();
           
           if (error) throw error;
           
-          if (data && data.pin_code) {
-            setPinCode(data.pin_code);
+          if (pinData?.pin_code) {
+            setPinCode(pinData.pin_code);
           }
         } catch (err) {
           console.error('Error fetching PIN code:', err);
@@ -145,7 +145,7 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
     
     try {
       // Update the PIN code
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('congregations')
         .update({ pin_code: newPinCode })
         .eq('id', congregation.id);

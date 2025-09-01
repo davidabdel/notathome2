@@ -25,7 +25,7 @@ const MapSetupForm: React.FC<MapSetupFormProps> = ({ congregationId, onSetupComp
     
     try {
       // First, update the congregation with the map count
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('congregations')
         .update({ map_count: mapCount })
         .eq('id', congregationId);
@@ -43,7 +43,7 @@ const MapSetupForm: React.FC<MapSetupFormProps> = ({ congregationId, onSetupComp
         created_at: new Date().toISOString()
       }));
       
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('territory_maps')
         .insert(maps);
       
