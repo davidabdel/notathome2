@@ -9,7 +9,7 @@ export async function updateNotAtHomeAddress(
   block_number: string
 ) {
   // Call the SQL function we created to avoid TypeScript errors
-  return await supabase.rpc('update_not_at_home_address', {
+  return await (supabase as any).rpc('update_not_at_home_address', {
     p_id: id,
     p_address: address,
     p_block_number: block_number

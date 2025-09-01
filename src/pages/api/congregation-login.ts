@@ -36,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get all congregations for debugging
     console.log('Fetching all congregations');
     try {
-      const { data: allCongregations, error: allError } = await supabaseAdmin
-        .from('congregations')
+      const { data: allCongregations, error: allError } = await (supabaseAdmin
+        .from('congregations') as any)
         .select('id, name, pin_code, status');
       
       console.log('All congregations:', allCongregations);
@@ -61,8 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // First try exact match
     console.log('Trying exact match for congregation:', congregationName);
     try {
-      const { data: exactMatch, error: exactError } = await supabaseAdmin
-        .from('congregations')
+      const { data: exactMatch, error: exactError } = await (supabaseAdmin
+        .from('congregations') as any)
         .select('id, name, pin_code, status')
         .eq('name', congregationName)
         .eq('status', 'active');
@@ -123,8 +123,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const userId = userData.user.id;
             
             // Add user role for this user
-            const { error: roleError } = await supabaseAdmin
-              .from('user_roles')
+            const { error: roleError } = await (supabaseAdmin
+              .from('user_roles') as any)
               .insert({
                 user_id: userId,
                 congregation_id: congregation.id,
@@ -196,8 +196,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // If no exact match, try case-insensitive search
     console.log('No exact match found, trying case-insensitive search');
     try {
-      const { data: congregations, error: congregationError } = await supabaseAdmin
-        .from('congregations')
+      const { data: congregations, error: congregationError } = await (supabaseAdmin
+        .from('congregations') as any)
         .select('id, name, pin_code, status')
         .ilike('name', `%${congregationName}%`)
         .eq('status', 'active');
@@ -279,8 +279,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const userId = userData.user.id;
         
         // Add user role for this user
-        const { error: roleError } = await supabaseAdmin
-          .from('user_roles')
+        const { error: roleError } = await (supabaseAdmin
+          .from('user_roles') as any)
           .insert({
             user_id: userId,
             congregation_id: congregation.id,

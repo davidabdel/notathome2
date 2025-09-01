@@ -128,7 +128,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               if (email === 'david@uconnect.com.au') {
                 console.log('Superadmin detected, redirecting to Admin Dashboard');
                 
-                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                const { data: signInData, error: signInError } = await (supabase.auth as any).signInWithPassword({
                   email,
                   password
                 });
@@ -147,7 +147,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                 return;
               }
               
-              const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              const { data: signInData, error: signInError } = await (supabase.auth as any).signInWithPassword({
                 email,
                 password
               });
@@ -188,8 +188,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       // For all congregations, use the congregation-login API
       try {
         // First try to get all congregations to debug (this will likely fail due to RLS)
-        const { data: allCongregations, error: allError } = await supabase
-          .from('congregations')
+        const { data: allCongregations, error: allError } = await (supabase
+          .from('congregations') as any)
           .select('id, name, pin_code, status');
         
         // Call the direct-insert API to ensure Admin Congregation exists
@@ -222,7 +222,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           const { access_token, refresh_token } = data.session;
           
           // Set the session in Supabase
-          const { error: sessionError } = await supabase.auth.setSession({
+          const { error: sessionError } = await (supabase.auth as any).setSession({
             access_token,
             refresh_token
           });

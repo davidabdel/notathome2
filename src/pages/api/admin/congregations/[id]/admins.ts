@@ -31,8 +31,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Check if the user is a super admin
-    const { data: userRoles, error: rolesError } = await supabaseAdmin
-      .from('user_roles')
+    const { data: userRoles, error: rolesError } = await (supabaseAdmin
+      .from('user_roles') as any)
       .select('role')
       .eq('user_id', currentUser.id)
       .eq('role', 'admin');
@@ -42,8 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Verify congregation exists
-    const { data: congregation, error: congregationError } = await supabaseAdmin
-      .from('congregations')
+    const { data: congregation, error: congregationError } = await (supabaseAdmin
+      .from('congregations') as any)
       .select('id, name')
       .eq('id', id)
       .single();
@@ -55,8 +55,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Handle different HTTP methods
     if (req.method === 'GET') {
       // Get all congregation admins
-      const { data: roleData, error: roleError } = await supabaseAdmin
-        .from('user_roles')
+      const { data: roleData, error: roleError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .select('user_id, user_email')
         .eq('congregation_id', id)
         .eq('role', 'congregation_admin');
@@ -107,14 +107,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // First check if the user already exists
       const { data: existingUser, error: existingUserError } = await supabaseAdmin.auth.admin.listUsers();
       
-      const userExists = existingUser?.users.find(user => user.email?.toLowerCase() === email.toLowerCase());
+      const userExists = existingUser?.users.find(user => (user as any).email?.toLowerCase() === email.toLowerCase());
       
       if (userExists) {
         userId = userExists.id;
         
         // Check if user is already an admin for this congregation
-        const { data: existingRole, error: existingRoleError } = await supabaseAdmin
-          .from('user_roles')
+        const { data: existingRole, error: existingRoleError } = await (supabaseAdmin
+          .from('user_roles') as any)
           .select('id')
           .eq('user_id', userId)
           .eq('congregation_id', id)
@@ -143,8 +143,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Add congregation_admin role
-      const { error: insertRoleError } = await supabaseAdmin
-        .from('user_roles')
+      const { error: insertRoleError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .insert({
           user_id: userId,
           congregation_id: id,
@@ -168,8 +168,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       // Remove the congregation_admin role for this user
-      const { error: deleteRoleError } = await supabaseAdmin
-        .from('user_roles')
+      const { error: deleteRoleError } = await (supabaseAdmin
+        .from('user_roles') as any)
         .delete()
         .eq('user_id', adminId)
         .eq('congregation_id', id)

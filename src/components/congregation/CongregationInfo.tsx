@@ -35,11 +35,11 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
     const fetchPinCode = async () => {
       if (!congregation.pin_code) {
         try {
-          const { data: pinData, error } = await supabase
-            .from('congregations')
+          const { data: pinData, error } = await (supabase
+            .from('congregations') as any)
             .select('pin_code')
             .eq('id', congregation.id)
-            .single<{ pin_code: string | null }>();
+            .single();
           
           if (error) throw error;
           
@@ -87,7 +87,7 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
     
     try {
       // First verify the current password by signing in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await (supabase.auth as any).signInWithPassword({
         email: congregation.contact_email || '',
         password: currentPassword
       });
@@ -97,7 +97,7 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
       }
       
       // Update the password
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { error: updateError } = await (supabase.auth as any).updateUser({
         password: newPassword
       });
       

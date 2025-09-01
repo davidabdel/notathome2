@@ -213,8 +213,8 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
     const checkAndCreateBucket = async () => {
       try {
         // First check if the bucket exists
-        const { data, error } = await supabase
-          .storage
+        const { data, error } = await (supabase
+          .storage as any)
           .getBucket('maps');
         
         if (error) {
@@ -225,8 +225,8 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
             console.log('Bucket not found, attempting to create it...');
             
             try {
-              const { data: createData, error: createError } = await supabase
-                .storage
+              const { data: createData, error: createError } = await (supabase
+                .storage as any)
                 .createBucket('maps', {
                   public: true,
                   fileSizeLimit: 5242880 // 5MB
@@ -253,8 +253,8 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
           console.log('Bucket is not public, updating...');
           
           try {
-            const { data: updateData, error: updateError } = await supabase
-              .storage
+            const { data: updateData, error: updateError } = await (supabase
+              .storage as any)
               .updateBucket('maps', {
                 public: true
               });
@@ -351,8 +351,8 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
 
     try {
       // First, ensure the bucket exists
-      const { data: bucketData, error: bucketError } = await supabase
-        .storage
+      const { data: bucketData, error: bucketError } = await (supabase
+        .storage as any)
         .getBucket('maps');
       
       if (bucketError) {
@@ -406,8 +406,8 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
       
       console.log('Uploading file:', { fileName, filePath, fileType: file.type, fileSize: file.size });
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('maps')
+      const { data: uploadData, error: uploadError } = await (supabase.storage
+        .from('maps') as any)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -435,8 +435,8 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
       console.log('Upload successful:', uploadData);
 
       // Get the public URL
-      const { data } = supabase.storage
-        .from('maps')
+      const { data } = (supabase.storage
+        .from('maps') as any)
         .getPublicUrl(filePath);
       
       const publicUrl = data.publicUrl;
@@ -444,7 +444,7 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
       
       // Test if the URL is accessible
       try {
-        const testResponse = await fetch(publicUrl, { method: 'HEAD', mode: 'no-cors' });
+        const testResponse = await fetch(publicUrl as string, { method: 'HEAD', mode: 'no-cors' });
         console.log('URL test response:', testResponse);
       } catch (testErr) {
         console.warn('URL test error (this may be normal with no-cors):', testErr);
@@ -594,7 +594,7 @@ const TerritoryMapCard: React.FC<TerritoryMapCardProps> = ({ map, onUpdate }) =>
                   setImageErrorMessage('Failed to load image. The storage bucket may not exist or you may not have permission to access it.');
                   // Try to fetch the image directly to see if there's a CORS issue
                   if (map.image_url) {
-                    fetch(map.image_url, { mode: 'no-cors' })
+                    fetch(map.image_url as string, { mode: 'no-cors' })
                       .then(() => console.log('Image fetch successful (no-cors)'))
                       .catch(err => {
                         console.error('Image fetch failed:', err);

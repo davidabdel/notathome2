@@ -149,7 +149,8 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
         console.warn('Could not get user ID:', userErr);
       }
 
-      const { error: insertError } = await supabaseClient.from('not_at_home_addresses')
+      const { error: insertError } = await (supabaseClient
+        .from('not_at_home_addresses') as any)
         .insert([{ 
           session_id: sessionId,
           block_number: selectedBlock,
@@ -263,7 +264,8 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
         console.warn('Could not get user ID:', userErr);
       }
 
-      const { error: insertError } = await supabaseClient.from('not_at_home_addresses')
+      const { error: insertError } = await (supabaseClient
+        .from('not_at_home_addresses') as any)
         .insert([{ 
           session_id: sessionId,
           block_number: selectedBlock,

@@ -8,19 +8,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Try direct query first
-    const { count: directCount, error: directError } = await supabase
-      .from('congregation_requests')
+    const { count: directCount, error: directError } = await (supabase
+      .from('congregation_requests') as any)
       .select('id', { count: 'exact' })
       .eq('status', 'pending');
 
     // Try getting all requests without filtering
-    const { data: allRequests, error: allRequestsError } = await supabase
-      .from('congregation_requests')
+    const { data: allRequests, error: allRequestsError } = await (supabase
+      .from('congregation_requests') as any)
       .select('*');
 
     // Try inserting a test request directly
-    const { data: insertData, error: insertError } = await supabase
-      .from('congregation_requests')
+    const { data: insertData, error: insertError } = await (supabase
+      .from('congregation_requests') as any)
       .insert([{ 
         name: 'Debug Test Congregation', 
         pin_code: '123456', 
@@ -30,8 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .select();
 
     // Try a simpler query
-    const { data: simpleData, error: simpleError } = await supabase
-      .from('congregation_requests')
+    const { data: simpleData, error: simpleError } = await (supabase
+      .from('congregation_requests') as any)
       .select('id, status');
 
     // Return all debug info

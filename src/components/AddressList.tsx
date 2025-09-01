@@ -60,8 +60,8 @@ const AddressList: React.FC<AddressListProps> = ({
       setLoading(true);
       
       // Use supabaseClient instead of supabase
-      const { data, error: fetchError } = await supabase
-        .from('not_at_home_addresses')
+      const { data, error: fetchError } = await (supabase
+        .from('not_at_home_addresses') as any)
         .select('*')
         .eq('session_id', sessionId)
         .order('created_at', { ascending: true });
@@ -130,8 +130,8 @@ const AddressList: React.FC<AddressListProps> = ({
       setError(null);
       setDetailedError(null);
       
-      const { error: deleteError } = await supabase
-        .from('not_at_home_addresses')
+      const { error: deleteError } = await (supabase
+        .from('not_at_home_addresses') as any)
         .delete()
         .eq('id', editingId);
       
