@@ -20,7 +20,7 @@ interface TerritoryMapsPageProps {
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   // Get the user using the new Supabase JS client
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await (supabase.auth as any).getUser();
   
   if (!user) {
     return {
@@ -32,7 +32,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   }
 
   // Check if user has a congregation and is a congregation admin
-  const { data: userRoles } = await supabase
+  const { data: userRoles } = await (supabase as any)
     .from('user_roles')
     .select('*')
     .eq('user_id', user.id)
@@ -48,10 +48,10 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   }
 
   // Get congregation data
-  const { data: congregationData, error: congregationError } = await supabase
+  const { data: congregationData, error: congregationError } = await (supabase as any)
     .from('congregations')
     .select('id, name, status')
-    .eq('id', userRoles[0].congregation_id)
+    .eq('id', (userRoles as any)[0].congregation_id)
     .single();
 
   if (congregationError || !congregationData) {
@@ -128,7 +128,7 @@ const TerritoryMapsPage: React.FC<TerritoryMapsPageProps> = ({
           <button 
             className="nav-item sign-out"
             onClick={async () => {
-              await supabase.auth.signOut();
+              await (supabase.auth as any).signOut();
               window.location.href = '/login';
             }}
           >
