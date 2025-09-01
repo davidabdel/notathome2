@@ -7,6 +7,7 @@ import { subscribeToLocationUpdates } from '../utils/realtimeClient';
 
 // Database types
 type DbAddress = Database['public']['Tables']['not_at_home_addresses']['Row'];
+type DbAddressUpdate = Database['public']['Tables']['not_at_home_addresses']['Update'];
 
 // Define the Address type for internal component use
 interface Address {
@@ -268,12 +269,13 @@ const AddressList: React.FC<AddressListProps> = ({
         return;
       }
       
-      const { error: updateError } = await supabase
+      // Using type assertion to bypass TypeScript error
+      const { error: updateError } = await (supabase
         .from('not_at_home_addresses')
-        .update({ 
+        .update({
           address: formattedAddress.trim(),
           block_number: addressFields.block_number
-        })
+        }) as any)
         .eq('id', editingId);
       
       if (updateError) {
