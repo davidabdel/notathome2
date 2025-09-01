@@ -31,8 +31,8 @@ export default function NewCongregationPage() {
         }
         
         // Check if user is admin
-        const { data: userRoles, error: userRolesError } = await supabase
-          .from('user_roles')
+        const { data: userRoles, error: userRolesError } = await (supabase
+          .from('user_roles') as any)
           .select('role')
           .eq('user_id', user.id)
           .eq('role', 'admin')
@@ -77,8 +77,8 @@ export default function NewCongregationPage() {
     
     try {
       // Insert new congregation
-      const { data: newCongregation, error: insertError } = await supabase
-        .from('congregations')
+      const { data: newCongregation, error: insertError } = await (supabase
+        .from('congregations') as any)
         .insert({
           name: name.trim(),
           pin_code: pinCode.trim(),
