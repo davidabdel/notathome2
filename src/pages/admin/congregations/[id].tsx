@@ -44,8 +44,8 @@ export default function CongregationDetailsPage() {
         }
         
         // Check if user is admin
-        const { data: userRoles, error: userRolesError } = await supabase
-          .from('user_roles')
+        const { data: userRoles, error: userRolesError } = await (supabase
+          .from('user_roles') as any)
           .select('role')
           .eq('user_id', user.id)
           .eq('role', 'admin')
@@ -60,8 +60,8 @@ export default function CongregationDetailsPage() {
         setIsAdmin(true);
         
         // Fetch congregation details
-        const { data: congregationData, error: congregationError } = await supabase
-          .from('congregations')
+        const { data: congregationData, error: congregationError } = await (supabase
+          .from('congregations') as any)
           .select('*')
           .eq('id', id)
           .single();
@@ -77,28 +77,31 @@ export default function CongregationDetailsPage() {
         }
         
         // Get counts
-        const { count: adminCount } = await supabase
-          .from('user_roles')
+        const { count: adminCount } = await (supabase
+          .from('user_roles') as any)
           .select('id', { count: 'exact' })
           .eq('congregation_id', id)
           .eq('role', 'congregation_admin');
         
-        const { count: userCount } = await supabase
-          .from('user_roles')
+        const { count: userCount } = await (supabase
+          .from('user_roles') as any)
           .select('id', { count: 'exact' })
           .eq('congregation_id', id);
         
-        const { count: sessionCount } = await supabase
-          .from('sessions')
+        const { count: sessionCount } = await (supabase
+          .from('sessions') as any)
           .select('id', { count: 'exact' })
           .eq('congregation_id', id);
         
-        setCongregation({
-          ...congregationData,
-          admin_count: adminCount || 0,
-          user_count: userCount || 0,
-          session_count: sessionCount || 0
-        });
+        // Make sure congregationData is not null before spreading
+        if (congregationData) {
+          setCongregation({
+            ...congregationData,
+            admin_count: adminCount || 0,
+            user_count: userCount || 0,
+            session_count: sessionCount || 0
+          });
+        }
       } catch (err) {
         console.error('Error fetching congregation details:', err);
         setError('Failed to load congregation details');

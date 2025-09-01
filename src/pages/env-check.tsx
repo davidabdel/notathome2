@@ -30,7 +30,7 @@ export default function EnvCheck() {
     setIsLoading(true);
     try {
       // Try a simple query
-      const { data, error } = await supabase.from('user_roles').select('count', { count: 'exact' });
+      const { data, error } = await (supabase.from('user_roles') as any).select('count', { count: 'exact' });
       
       if (error) {
         setEnvStatus(prev => ({
