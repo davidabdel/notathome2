@@ -37,7 +37,7 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
     setError('');
 
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (supabase as any)
         .from('territory_maps')
         .select('*')
         .eq('congregation_id', congregationId)
@@ -96,7 +96,7 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
         created_at: new Date().toISOString()
       };
       
-      const { data, error: insertError } = await supabase
+      const { data, error: insertError } = await (supabase as any)
         .from('territory_maps')
         .insert(newMap)
         .select();
@@ -108,7 +108,7 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
       console.log('New map created:', data);
       
       // Update the congregation's map count
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('congregations')
         .update({ map_count: nextMapNumber })
         .eq('id', congregationId);
