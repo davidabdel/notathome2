@@ -31,9 +31,9 @@ export default async function handler(
     }
 
     // Insert the request into the congregation_requests table
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('congregation_requests')
-      .insert([{ name, pin_code, contact_email }]);
+      .insert([{ name, pin_code, contact_email }] as any[]);
 
     if (error) {
       console.error('Error submitting congregation request:', error);
