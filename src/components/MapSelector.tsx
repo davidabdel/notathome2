@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase/config';
 
+interface SessionData {
+  congregation_id: string;
+}
+
 interface MapSelectorProps {
   sessionId: string;
   onMapSelected: (mapNumber: number) => void;
@@ -35,13 +39,13 @@ const MapSelector: React.FC<MapSelectorProps> = ({ sessionId, onMapSelected }) =
         .from('sessions')
         .select('congregation_id')
         .eq('id', sessionId)
-        .single();
+        .single<SessionData>();
 
       if (sessionError) {
         throw sessionError;
       }
 
-      if (!sessionData?.congregation_id) {
+      if (!sessionData || !sessionData.congregation_id) {
         throw new Error('No congregation found for this session');
       }
 
@@ -50,7 +54,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({ sessionId, onMapSelected }) =
         .from('territory_maps')
         .select('*')
         .eq('congregation_id', sessionData.congregation_id)
-        .order('map_number', { ascending: true });
+        .order('map_number', { ascending: true })
+        .returns<TerritoryMap[]>();
 
       if (mapsError) {
         throw mapsError;
