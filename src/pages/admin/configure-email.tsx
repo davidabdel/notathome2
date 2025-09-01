@@ -13,6 +13,11 @@ interface EmailConfig {
   admin_email: string;
 }
 
+interface UserRole {
+  role: string;
+  user_id?: string;
+}
+
 export default function ConfigureEmail() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -49,7 +54,7 @@ export default function ConfigureEmail() {
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', session.user.id);
+          .eq('user_id', session.user.id) as { data: UserRole[] | null, error: any };
         
         if (rolesError) {
           console.error('Error fetching user roles:', rolesError);
@@ -58,7 +63,7 @@ export default function ConfigureEmail() {
           return;
         }
         
-        const adminRole = userRoles?.find(role => role.role === 'admin');
+        const adminRole = userRoles?.find((role: UserRole) => role.role === 'admin');
         
         if (!adminRole) {
           setError('You do not have permission to access this page');
