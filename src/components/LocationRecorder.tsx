@@ -21,6 +21,184 @@ interface AddressFields {
   suburb: string;
 }
 
+interface AddressConfirmationProps {
+  address: string;
+  onConfirm: (address: string) => void;
+  onEdit: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}
+
+// Address Confirmation Modal Component
+const AddressConfirmationModal: React.FC<AddressConfirmationProps> = ({
+  address,
+  onConfirm,
+  onEdit,
+  onCancel,
+  loading
+}) => {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2 className="modal-title">Confirm Address</h2>
+          <button onClick={onCancel} className="close-button">
+            ✕
+          </button>
+        </div>
+        
+        <div className="address-display">
+          {address}
+        </div>
+        
+        <div className="form-actions">
+          <div className="action-buttons">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="edit-button"
+              disabled={loading}
+            >
+              Edit Address
+            </button>
+            <button
+              type="button"
+              onClick={() => onConfirm(address)}
+              className="confirm-button"
+              disabled={loading}
+            >
+              {loading ? 'Confirming...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+        
+        .modal-content {
+          background-color: white;
+          border-radius: 0.75rem;
+          width: 90%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+          padding: 1.5rem;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+        
+        .modal-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #111827;
+          margin: 0;
+        }
+        
+        .close-button {
+          background: transparent;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6B7280;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .modal-subtitle {
+          color: #6B7280;
+          font-size: 1.1rem;
+          margin-top: 0.5rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .address-display {
+          padding: 1rem;
+          background-color: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          margin-bottom: 2rem;
+          font-size: 1.1rem;
+          line-height: 1.5;
+        }
+        
+        .form-actions {
+          margin-top: 1.5rem;
+        }
+        
+        .action-buttons {
+          display: flex;
+          justify-content: center;
+          gap: 1.5rem;
+          width: 100%;
+        }
+        
+        .cancel-button {
+          padding: 0.75rem 1.5rem;
+          background-color: white;
+          border: 1px solid #D1D5DB;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          cursor: pointer;
+          color: #111827;
+          width: 100%;
+          text-align: center;
+        }
+        
+        .edit-button {
+          padding: 0.75rem 1rem;
+          background-color: white;
+          border: 1px solid #D1D5DB;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          cursor: pointer;
+          color: #111827;
+          width: 160px;
+          white-space: nowrap;
+          text-align: center;
+        }
+        
+        .confirm-button {
+          padding: 0.75rem 1rem;
+          background-color: #10b981;
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          width: 160px;
+          white-space: nowrap;
+          text-align: center;
+        }
+        
+        .confirm-button:disabled, .edit-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const LocationRecorder: React.FC<LocationRecorderProps> = ({ 
   sessionId, 
   selectedBlock,
@@ -33,6 +211,9 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [showAddressConfirmation, setShowAddressConfirmation] = useState(false);
+  const [detectedAddress, setDetectedAddress] = useState<string>('');
+  const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [addressFields, setAddressFields] = useState<AddressFields>({
     unitNumber: '',
     houseNumber: '',
@@ -98,6 +279,7 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
       
       if (!location) {
         setError('Failed to get current location');
+        setLoading(false);
         return;
       }
 
@@ -108,11 +290,30 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
 
       if (!results.results?.[0]) {
         setError('Could not determine address from location');
+        setLoading(false);
         return;
       }
 
       const address = results.results[0].formatted_address;
-
+      
+      // Store the current location and detected address for later use
+      setCurrentLocation({ lat: location.lat, lng: location.lng });
+      setDetectedAddress(address);
+      
+      // Show the confirmation modal instead of immediately recording
+      setShowAddressConfirmation(true);
+      setLoading(false);
+      
+    } catch (err) {
+      setError('Failed to get location');
+      setDetailedError(err instanceof Error ? err.message : String(err));
+      setLoading(false);
+    }
+  };
+  
+  const handleAddressConfirm = async (confirmedAddress: string) => {
+    setLoading(true);
+    try {
       let userId = null;
       try {
         const { data: { user } } = await supabaseClient.auth.getUser();
@@ -125,9 +326,9 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
         .insert([{ 
           session_id: sessionId,
           block_number: selectedBlock,
-          latitude: location.lat,
-          longitude: location.lng,
-          address: address,
+          latitude: currentLocation?.lat,
+          longitude: currentLocation?.lng,
+          address: confirmedAddress,
           created_by: userId
         }]);
 
@@ -135,6 +336,7 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
         throw insertError;
       }
 
+      setShowAddressConfirmation(false);
       showSuccessMessage('Location recorded successfully');
       if (onLocationRecorded) onLocationRecorded();
     } catch (err) {
@@ -144,16 +346,45 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
       setLoading(false);
     }
   };
+  
+  const handleAddressEdit = () => {
+    // Parse the detected address to pre-fill the manual entry form
+    // This is a simple parsing logic and might need adjustment based on address format
+    try {
+      const addressParts = detectedAddress.split(',').map(part => part.trim());
+      
+      // Try to extract house number and street name from the first part
+      const firstPart = addressParts[0] || '';
+      const match = firstPart.match(/^(\d+)\s+(.+)$/);
+      
+      if (match) {
+        setAddressFields(prev => ({
+          ...prev,
+          houseNumber: match[1] || '',
+          streetName: match[2] || '',
+          suburb: addressParts[1] || ''
+        }));
+      }
+      
+      // Close confirmation modal and open manual entry
+      setShowAddressConfirmation(false);
+      setShowManualEntry(true);
+    } catch (err) {
+      console.error('Error parsing address:', err);
+      // If parsing fails, just open the manual entry form
+      setShowAddressConfirmation(false);
+      setShowManualEntry(true);
+    }
+  };
+  
+  const handleConfirmationCancel = () => {
+    setShowAddressConfirmation(false);
+    setDetectedAddress('');
+    setCurrentLocation(null);
+  };
 
   const handleManualEntry = () => {
     setShowManualEntry(true);
-  };
-
-  const handleInputChange = (field: keyof AddressFields, value: string) => {
-    setAddressFields(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -222,6 +453,13 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
     }
   };
 
+  const handleInputChange = (field: keyof AddressFields, value: string) => {
+    setAddressFields(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleCloseModal = () => {
     setShowManualEntry(false);
     setAddressFields({
@@ -234,25 +472,19 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
 
   return (
     <div>
-      {!showManualEntry ? (
-        <div className="button-container">
-          <button
-            onClick={handleCaptureLocation}
-            disabled={loading || !selectedBlock}
-            className="record-button location-button"
-          >
-            <span className="button-icon">📍</span> Record Location
-          </button>
-          
-          <button
-            onClick={handleManualEntry}
-            disabled={loading || !selectedBlock}
-            className="record-button manual-button"
-          >
-            <span className="button-icon">+</span> Record Manually
-          </button>
-        </div>
-      ) : (
+      {/* Address Confirmation Modal */}
+      {showAddressConfirmation && (
+        <AddressConfirmationModal
+          address={detectedAddress}
+          onConfirm={handleAddressConfirm}
+          onEdit={handleAddressEdit}
+          onCancel={handleConfirmationCancel}
+          loading={loading}
+        />
+      )}
+      
+      {/* Manual Entry Form */}
+      {showManualEntry && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
@@ -330,6 +562,27 @@ const LocationRecorder: React.FC<LocationRecorderProps> = ({
               </div>
             </form>
           </div>
+        </div>
+      )}
+      
+      {/* Main Buttons - Only show when neither modal is active */}
+      {!showManualEntry && !showAddressConfirmation && (
+        <div className="button-container">
+          <button
+            onClick={handleCaptureLocation}
+            disabled={loading || !selectedBlock}
+            className="record-button location-button"
+          >
+            <span className="button-icon">📍</span> Record Location
+          </button>
+          
+          <button
+            onClick={handleManualEntry}
+            disabled={loading || !selectedBlock}
+            className="record-button manual-button"
+          >
+            <span className="button-icon">+</span> Record Manually
+          </button>
         </div>
       )}
 
