@@ -31,17 +31,14 @@ const FirstTimeAlert: React.FC<FirstTimeAlertProps> = ({ version }) => {
     <div className="alert-overlay">
       <div className="alert-container">
         <div className="alert-header">
-          <h2>Welcome to Not Home App – Version {version}</h2>
+          <h2>Welcome to the 2026 Service Year !!</h2>
           <button className="close-button" onClick={handleClose}>×</button>
         </div>
         <div className="alert-content">
-          <p>We've made some exciting updates to enhance your experience:</p>
+          <p>New Updates:</p>
           <ul>
-            <li><strong>Auto-Refresh:</strong> The app now refreshes automatically when an address is entered.</li>
-            <li><strong>Streamlined Input:</strong> Block numbers only need to be entered once—until you choose to update them.</li>
-            <li><strong>Improved Oversight:</strong> Group overseer records are now displayed in a cleaner, more organized format.</li>
+            <li><strong>Confirm Address Before Commiting</strong> - Now Live</li>
           </ul>
-          <p>Thank you for using Not Home!</p>
         </div>
         <div className="alert-footer">
           <button className="ok-button" onClick={handleClose}>Got it!</button>
