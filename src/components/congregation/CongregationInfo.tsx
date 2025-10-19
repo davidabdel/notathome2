@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../supabase/config';
 
 interface Congregation {
@@ -6,6 +6,7 @@ interface Congregation {
   name: string;
   status: string;
   contact_email?: string;
+  notification_email?: string;
   created_at?: string;
   pin_code?: string;
 }
@@ -29,6 +30,16 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
   const [pinError, setPinError] = useState('');
   const [pinSuccess, setPinSuccess] = useState('');
   const [showPin, setShowPin] = useState(false);
+
+  // Notification email state
+  const [notificationEmail, setNotificationEmail] = useState(congregation.notification_email || '');
+  const [newNotificationEmail, setNewNotificationEmail] = useState('');
+  const [showNotificationForm, setShowNotificationForm] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifError, setNotifError] = useState('');
+  const [notifSuccess, setNotifSuccess] = useState('');
+  const notificationSectionRef = useRef<HTMLDivElement | null>(null);
+  const notificationInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     // Fetch the PIN code if not provided in the congregation object
@@ -54,6 +65,43 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
     
     fetchPinCode();
   }, [congregation.id, congregation.pin_code]);
+
+  const handleNotificationEmailUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNotifError('');
+    setNotifSuccess('');
+
+    if (!newNotificationEmail) {
+      setNotifError('Email is required');
+      return;
+    }
+
+    // basic email pattern
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newNotificationEmail)) {
+      setNotifError('Please enter a valid email address');
+      return;
+    }
+
+    setNotifLoading(true);
+    try {
+      const { error: updateError } = await supabase
+        .from('congregations')
+        .update({ notification_email: newNotificationEmail })
+        .eq('id', congregation.id);
+
+      if (updateError) throw new Error(updateError.message);
+
+      setNotificationEmail(newNotificationEmail);
+      setNewNotificationEmail('');
+      setNotifSuccess('Default notification email updated successfully');
+      setTimeout(() => setShowNotificationForm(false), 3000);
+    } catch (err: any) {
+      setNotifError(err.message || 'Failed to update notification email');
+    } finally {
+      setNotifLoading(false);
+    }
+  };
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,6 +246,27 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
         </div>
         
         <div className="info-item">
+          <div className="info-label">Default Notification Email</div>
+          <div className="info-value info-value-row">
+            <span>{notificationEmail || 'Not set'}</span>
+            <button
+              type="button"
+              className="edit-inline-button"
+              onClick={() => {
+                setShowNotificationForm(true);
+                // Allow state to apply, then scroll and focus
+                setTimeout(() => {
+                  notificationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  notificationInputRef.current?.focus();
+                }, 50);
+              }}
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+        
+        <div className="info-item">
           <div className="info-label">Congregation PIN</div>
           <div className="info-value pin-display">
             {showPin ? pinCode : '•'.repeat(pinCode.length)}
@@ -252,7 +321,7 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
                 </button>
               </div>
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="new-pin">New PIN Code</label>
               <input
@@ -267,7 +336,7 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
               />
               <div className="input-help">PIN must be 3-10 digits</div>
             </div>
-            
+
             <div className="form-actions">
               <button
                 type="button"
@@ -424,6 +493,24 @@ const CongregationInfo: React.FC<CongregationInfoProps> = ({ congregation }) => 
           font-size: 1rem;
           color: #1e293b;
           font-weight: 500;
+        }
+        .info-value-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+        }
+        .edit-inline-button {
+          background-color: #e2e8f0;
+          color: #334155;
+          border: 1px solid #cbd5e1;
+          border-radius: 0.25rem;
+          padding: 0.25rem 0.5rem;
+          font-size: 0.75rem;
+          cursor: pointer;
+        }
+        .edit-inline-button:hover {
+          background-color: #cbd5e1;
         }
         
         .pin-display {

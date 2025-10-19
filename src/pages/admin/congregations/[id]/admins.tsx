@@ -33,6 +33,7 @@ export default function ManageCongregationAdminsPage() {
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState('');
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
   const [addError, setAddError] = useState('');
   
@@ -167,7 +168,8 @@ export default function ManageCongregationAdminsPage() {
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          email: newAdminEmail
+          email: newAdminEmail,
+          notification_email: notificationEmail || undefined
         })
       });
       
@@ -189,6 +191,7 @@ export default function ManageCongregationAdminsPage() {
       // Close modal and reset state
       setIsAddModalOpen(false);
       setNewAdminEmail('');
+      setNotificationEmail('');
       setSuccess('Invitation sent to the new congregation admin');
     } catch (err) {
       console.error('Error adding congregation admin:', err);
@@ -408,6 +411,17 @@ export default function ManageCongregationAdminsPage() {
                     onChange={(e) => setNewAdminEmail(e.target.value)}
                     placeholder="Enter email address"
                     required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="notification-email">Default notification email (optional)</label>
+                  <input
+                    type="email"
+                    id="notification-email"
+                    value={notificationEmail}
+                    onChange={(e) => setNotificationEmail(e.target.value)}
+                    placeholder="Email to notify if no map is closed within 24 hours"
                   />
                 </div>
                 

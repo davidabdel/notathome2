@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } 
     else if (req.method === 'POST') {
       // Add a new congregation admin
-      const { email } = req.body;
+      const { email, notification_email } = req.body as { email?: string; notification_email?: string };
       
       if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -157,6 +157,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Failed to add congregation admin role' });
       }
       
+      // Optionally update congregation's default notification email
+      if (notification_email && typeof notification_email === 'string') {
+        const { error: updateCongError } = await supabaseAdmin
+          .from('congregations')
+          .update({ notification_email })
+          .eq('id', id as string);
+
+        if (updateCongError) {
+          // Log but do not fail the whole request
+          console.error('Error updating congregation notification_email:', updateCongError);
+        }
+      }
+
       return res.status(201).json({ success: true, message: 'Congregation admin added successfully' });
     }
     else if (req.method === 'DELETE') {
