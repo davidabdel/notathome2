@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
+ 
 import { supabase } from '../../../supabase/config';
-import { createSession, endSession, generateSessionCode } from '../../utils/session';
+import { createSession, generateSessionCode } from '../../utils/session';
 import EnhancedMapSelectionModal from '../../components/EnhancedMapSelectionModal';
 import ShareSessionModal from '../../components/ShareSessionModal';
 import ShareSessionDataModal from '../../components/ShareSessionDataModal';
@@ -13,7 +13,7 @@ export default function GroupOverseerDashboard() {
   const [sessionCode, setSessionCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [creatingSession, setCreatingSession] = useState(false);
-  const [endingSession, setEndingSession] = useState(false);
+  const [endingSession, _setEndingSession] = useState(false);
   const [error, setError] = useState('');
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -25,9 +25,9 @@ export default function GroupOverseerDashboard() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sessionToShare, setSessionToShare] = useState<string>('');
-  const [creatingAddressesTable, setCreatingAddressesTable] = useState(false);
-  const [addressesTableCreated, setAddressesTableCreated] = useState(false);
-  const [addressesTableError, setAddressesTableError] = useState<string | null>(null);
+  const [_creatingAddressesTable, setCreatingAddressesTable] = useState(false);
+  const [_addressesTableCreated, setAddressesTableCreated] = useState(false);
+  const [_addressesTableError, setAddressesTableError] = useState<string | null>(null);
   const [allOpenSessions, setAllOpenSessions] = useState<any[]>([]);
   const [isShareDataModalOpen, setIsShareDataModalOpen] = useState(false);
   const [sessionToShareData, setSessionToShareData] = useState<string>('');
@@ -510,7 +510,7 @@ export default function GroupOverseerDashboard() {
     }
   };
   
-  const createAddressesTable = async () => {
+  const _createAddressesTable = async () => {
     try {
       setCreatingAddressesTable(true);
       setAddressesTableError(null);

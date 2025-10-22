@@ -152,7 +152,6 @@ export const endSession = async (sessionId: string): Promise<boolean> => {
     console.log('Ending session and deleting all associated data for sessionId:', sessionId);
     
     // Start a transaction for all delete operations
-    // @ts-ignore - Supabase client is imported from utils
     const { error: txError } = await supabase.rpc('end_session', {
       p_session_id: sessionId
     });

@@ -77,7 +77,7 @@ if (isBrowser && isProduction && (!finalUrl || !finalKey)) {
 }
 
 // Define the mock client type
-type MockClient = {
+type _MockClient = {
   from: () => {
     select: () => {
       eq: () => {
