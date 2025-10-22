@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { supabase } from '../../supabase/config';
@@ -19,8 +19,8 @@ export default function SetupDatabase() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [congregations, setCongregations] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
+  const [_success, setSuccess] = useState<string | null>(null);
 
   const checkTables = async () => {
     setLoading(true);

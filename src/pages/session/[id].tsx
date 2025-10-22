@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -10,7 +10,6 @@ import BlockSelector from '../../components/BlockSelector';
 import LocationRecorder from '../../components/LocationRecorder';
 import AddressList from '../../components/AddressList';
 import MapSelector from '../../components/MapSelector';
-import ShareSessionModal from '../../components/ShareSessionModal';
 
 interface SessionData {
   id: string;
@@ -34,7 +33,6 @@ interface SessionResponse {
   map_number?: number;
 }
 
-// Explicitly type the supabase client
 const supabaseClient: SupabaseClient = supabase;
 
 const SessionPage: React.FC = () => {
@@ -46,15 +44,14 @@ const SessionPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
-  const [refreshAddresses, setRefreshAddresses] = useState<number>(0);
+  const [_refreshAddresses, setRefreshAddresses] = useState<number>(0);
 
-  const fetchSessionData = async () => {
+  const fetchSessionData = useCallback(async () => {
     if (!id) return;
     
     try {
       setLoading(true);
       
-      // Fetch session data
       const { data, error } = await supabaseClient
         .from('sessions')
         .select(`
@@ -80,7 +77,6 @@ const SessionPage: React.FC = () => {
         return;
       }
       
-      // Format the session data
       const sessionResponse = data as unknown as SessionResponse;
       const sessionData: SessionData = {
         id: sessionResponse.id,
@@ -95,7 +91,6 @@ const SessionPage: React.FC = () => {
       
       setSession(sessionData);
       
-      // If the session already has a map number, set it as selected
       if (sessionData.map_number) {
         setSelectedMap(sessionData.map_number);
       }
@@ -105,13 +100,11 @@ const SessionPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  // Load the saved block number from localStorage when the component mounts
   useEffect(() => {
     if (!id) return;
     
-    // Try to get the saved block number for this specific session
     const savedBlock = localStorage.getItem(`selectedBlock_${id}`);
     if (savedBlock) {
       setSelectedBlock(parseInt(savedBlock, 10));
@@ -119,11 +112,9 @@ const SessionPage: React.FC = () => {
     
     fetchSessionData();
     
-    // Subscribe to session updates
     const unsubscribe = subscribeToSessionUpdates(
       id as string,
-      (updatedSession) => {
-        // Update the session data when changes occur
+      (_updatedSession) => {
         fetchSessionData();
       }
     );
@@ -131,12 +122,11 @@ const SessionPage: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [id]);
+  }, [id, fetchSessionData]);
 
   const handleMapSelected = async (mapNumber: number) => {
     setSelectedMap(mapNumber);
     
-    // Update the session with the selected map number
     if (session) {
       try {
         const { error } = await supabaseClient
@@ -156,20 +146,17 @@ const SessionPage: React.FC = () => {
   const handleBlockSelected = (blockNumber: number) => {
     setSelectedBlock(blockNumber);
     
-    // Save the selected block number to localStorage for this specific session
     if (id) {
       localStorage.setItem(`selectedBlock_${id}`, blockNumber.toString());
     }
   };
 
   const handleLocationRecorded = () => {
-    // Trigger a refresh of the address list
     setRefreshAddresses(prev => prev + 1);
     
-    // Force a fetch of the addresses immediately
     const fetchAddressesNow = async () => {
       try {
-        const { data, error } = await supabaseClient
+        const { error } = await supabaseClient
           .from('not_at_home_addresses')
           .select('*')
           .eq('session_id', id as string)

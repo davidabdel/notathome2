@@ -46,7 +46,6 @@ export const subscribeToUpdates = <T extends Record<string, any> = Record<string
     .channel(channelKey);
     
   // Use type assertion to bypass TypeScript checking
-  // @ts-ignore: Supabase allows 'postgres_changes' despite type definition limitations
   (channel as any).on(
     'postgres_changes',
     {

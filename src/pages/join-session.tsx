@@ -10,7 +10,7 @@ const JoinSessionPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [_loadingSessions, setLoadingSessions] = useState(true);
 
   useEffect(() => {
     fetchActiveSessions();

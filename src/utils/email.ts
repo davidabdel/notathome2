@@ -1,9 +1,4 @@
-// Only import nodemailer on the server side
-let nodemailer: any;
-if (typeof window === 'undefined') {
-  // This code only runs on the server
-  nodemailer = require('nodemailer');
-}
+// Nodemailer will be dynamically imported server-side when needed
 
 export interface EmailOptions {
   to: string;
@@ -69,12 +64,13 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 
   try {
-    // Ensure nodemailer is available (server-side only)
-    if (!nodemailer) {
-      console.error('Nodemailer is not available');
+    // Dynamically import nodemailer on server only
+    if (typeof window !== 'undefined') {
+      console.error('Email sending is not supported on the client side');
       return false;
     }
-    
+    const { default: nodemailer } = await import('nodemailer');
+
     // Create transporter with SMTP settings
     const transporter = nodemailer.createTransport({
       host,
