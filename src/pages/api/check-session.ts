@@ -32,7 +32,7 @@ export default async function handler(
     
     // Check if the session ID has extra characters (longer than 36 chars)
     let normalizedSessionId = sessionId;
-    let originalSessionId = sessionId;
+    const originalSessionId = sessionId;
     let wasFixed = false;
     
     if (sessionId.length > 36) {

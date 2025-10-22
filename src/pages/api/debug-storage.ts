@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
     
-    let result: any = { envStatus };
+    const result: any = { envStatus };
     
     switch (action) {
       case 'check_env':

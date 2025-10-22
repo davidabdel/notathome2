@@ -27,12 +27,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const supabaseAdmin = createAdminClient();
     
     // First check if the Admin Congregation exists
-    let { data: congregation, error: checkError } = await supabaseAdmin
+    const { data: congregationData, error: checkError } = await supabaseAdmin
       .from('congregations')
       .select('*')
       .eq('name', 'Admin Congregation')
       .eq('status', 'active')
       .single();
+    let congregation = congregationData;
     
     if (checkError) {
       return res.status(500).json({ 
