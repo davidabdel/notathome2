@@ -1,8 +1,9 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AddToHomeScreen from '../components/AddToHomeScreen';
 import FirstTimeAlert from '../components/FirstTimeAlert';
+import DebugNavigation from '../components/DebugNavigation';
 import { setupExpirationChecker } from '../utils/sessionExpiration';
 import '../styles/globals.css';
 import { loadEmailConfigFromDatabase } from '../utils/load-env-config';
@@ -14,15 +15,18 @@ if (typeof window === 'undefined') {
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
-  // Set up session expiration checker
+  // Set up session expiration checker (server-side only)
   useEffect(() => {
-    // Check for expired sessions every 15 minutes
-    const clearExpirationChecker = setupExpirationChecker(15);
-    
-    // Clean up when component unmounts
-    return () => {
-      clearExpirationChecker();
-    };
+    // Only run on the server side
+    if (typeof window === 'undefined') {
+      // Check for expired sessions every 15 minutes
+      const clearExpirationChecker = setupExpirationChecker(15);
+      
+      // Clean up when component unmounts
+      return () => {
+        clearExpirationChecker();
+      };
+    }
   }, []);
   
   return (
@@ -43,6 +47,9 @@ function MyApp({ Component, pageProps }: AppProps) {
       <Component {...pageProps} />
       <AddToHomeScreen />
       <FirstTimeAlert version="2.0" />
+      
+      {/* Debug navigation - only shown in development */}
+      {process.env.NODE_ENV === 'development' && <DebugNavigation />}
       
       <style jsx global>{`
         /* Hide browser UI in standalone mode */

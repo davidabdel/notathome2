@@ -3,7 +3,8 @@ import { Database } from '../src/types/supabase';
 
 // Get environment variables with fallbacks
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY || '';
+// Prefer the standard ANON key name; fallback to legacy name if present
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_KEY || '';
 
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -14,7 +15,7 @@ if (process.env.NODE_ENV === 'production') {
     console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
   }
   if (!supabaseKey) {
-    console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_KEY');
+    console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 }
 

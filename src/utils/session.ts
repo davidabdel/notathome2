@@ -75,16 +75,22 @@ export const createSession = async (
     const { data, error } = await supabase
       .from('sessions')
       .insert(sessionData)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('Error creating session:', error);
       return null;
     }
     
-    console.log('Session created successfully:', data);
-    return data;
+    if (!data || data.length === 0) {
+      console.error('No session data returned after insert');
+      return null;
+    }
+    
+    // We should only have one session created
+    const createdSession = data[0];
+    console.log('Session created successfully:', createdSession);
+    return createdSession;
   } catch (err) {
     console.error('Exception in createSession:', err);
     return null;
@@ -94,19 +100,30 @@ export const createSession = async (
 // Join an existing session using a session code
 export const joinSession = async (sessionCode: string, userId: string): Promise<SessionData | null> => {
   try {
-    // First, find the session by code
-    const { data: session, error: sessionError } = await supabase
+    // First, find the session by code - don't use single() to avoid errors
+    const { data: sessions, error: sessionError } = await supabase
       .from('sessions')
       .select('*')
       .eq('code', sessionCode)
       .eq('is_active', true)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+      .gt('expires_at', new Date().toISOString());
     
-    if (sessionError || !session) {
+    if (sessionError) {
       console.error('Error finding session:', sessionError);
       return null;
     }
+    
+    if (!sessions || sessions.length === 0) {
+      console.log(`No active session found with code: ${sessionCode}`);
+      return null;
+    }
+    
+    // Use the first session if multiple were returned
+    if (sessions.length > 1) {
+      console.warn(`Multiple sessions found with code: ${sessionCode} (unusual). Using the first one.`);
+    }
+    
+    const session = sessions[0];
     
     // Then, add the user to the session participants
     const { error: participantError } = await supabase
@@ -183,25 +200,25 @@ export const endSession = async (sessionId: string): Promise<boolean> => {
       }
     }
     
-    // Verify the session was deleted
+    // Verify the session was deleted - don't use single() to avoid errors
     const { data: verifySession, error: verifyError } = await supabase
       .from('sessions')
       .select('id')
-      .eq('id', sessionId)
-      .single();
+      .eq('id', sessionId);
     
-    if (verifyError && verifyError.code === 'PGRST116') {
-      // PGRST116 means no rows returned - session was successfully deleted
+    if (verifyError) {
+      console.error('Error verifying session deletion:', verifyError);
+      return false;
+    }
+    
+    if (!verifySession || verifySession.length === 0) {
+      // No sessions found - session was successfully deleted
       console.log('Verification confirms session was deleted:', sessionId);
       return true;
     }
     
-    if (verifySession) {
-      console.error('Session still exists after deletion attempt:', verifySession);
-      return false;
-    }
-    
-    return true;
+    console.error('Session still exists after deletion attempt:', verifySession);
+    return false;
   } catch (err) {
     console.error('Error in endSession:', err);
     return false;
@@ -265,14 +282,26 @@ export const fetchAndShareSessionData = async (
       addresses = fetchedAddresses;
       console.log('Addresses fetched:', addresses ? addresses.length : 0);
       
-      // Get session details
-      const { data: fetchedSession, error: sessionError } = await supabase
+      console.log(`Fetching session details in fetchAndShareSessionData, sessionId: ${sessionId}`);
+      
+      // Get session details - don't use single() to avoid errors
+      const { data: fetchedSessions, error: sessionError } = await supabase
         .from('sessions')
         .select('*')
-        .eq('id', sessionId)
-        .single();
+        .eq('id', sessionId);
+        
+      console.log(`Session query result in fetchAndShareSessionData - sessions: ${fetchedSessions ? fetchedSessions.length : 0}, error: ${sessionError ? 'yes' : 'no'}`);
       
       if (sessionError) {
+        console.error('Error fetching session details:', sessionError);
+        // Create a minimal session object
+        session = {
+          id: sessionId,
+          code: 'ERROR',
+          created_at: new Date().toISOString(),
+          map_number: 'N/A'
+        };
+      } else if (!fetchedSessions || fetchedSessions.length === 0) {
         // If the session doesn't exist anymore (it's been deleted), we'll create a minimal session object
         console.log('Session not found in database (likely deleted), using minimal session object');
         session = {
@@ -282,7 +311,11 @@ export const fetchAndShareSessionData = async (
           map_number: 'N/A'
         };
       } else {
-        session = fetchedSession;
+        // Use the first session if multiple were returned (should not happen)
+        if (fetchedSessions.length > 1) {
+          console.warn(`Multiple sessions found with ID: ${sessionId} (unusual). Using the first one.`);
+        }
+        session = fetchedSessions[0];
       }
       
       console.log('Session details:', session);

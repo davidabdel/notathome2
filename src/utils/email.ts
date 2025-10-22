@@ -1,4 +1,9 @@
-import nodemailer from 'nodemailer';
+// Only import nodemailer on the server side
+let nodemailer: any;
+if (typeof window === 'undefined') {
+  // This code only runs on the server
+  nodemailer = require('nodemailer');
+}
 
 export interface EmailOptions {
   to: string;
@@ -12,27 +17,87 @@ export interface EmailOptions {
  * @returns Promise resolving to boolean indicating success or failure
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  // Check for required environment variables
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error('Email configuration missing. Check environment variables.');
+  // Check if we're on the client side
+  if (typeof window !== 'undefined') {
+    console.error('Email sending is not supported on the client side');
+    return false;
+  }
+  // First try SMTP. If not fully configured, fall back to Resend API if available
+  // Check for required environment variables - use SMTP_ prefixed variables first, fall back to EMAIL_ prefixed ones
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+  const port = process.env.SMTP_PORT || process.env.EMAIL_PORT;
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  // Default from address if not provided in environment variables
+  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || user || '';
+  const secure = process.env.SMTP_SECURE === 'true' || process.env.EMAIL_SECURE === 'true';
+
+  // If SMTP is not fully configured, try Resend
+  const smtpConfigured = Boolean(host && port && user && pass);
+  if (!smtpConfigured) {
+    const resendKey = process.env.RESEND_API_KEY;
+    const resendFrom = process.env.RESEND_FROM || 'onboarding@resend.dev';
+    if (resendKey) {
+      try {
+        const resp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: resendFrom,
+            to: options.to,
+            subject: options.subject,
+            html: options.html,
+          }),
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          console.error('Resend send failed:', text);
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error('Error sending via Resend:', err);
+        return false;
+      }
+    }
+    // Neither SMTP nor Resend configured
+    console.error('Email configuration missing. Provide SMTP_* (or EMAIL_*) or RESEND_API_KEY.');
     return false;
   }
 
   try {
-    // Create transporter
+    // Ensure nodemailer is available (server-side only)
+    if (!nodemailer) {
+      console.error('Nodemailer is not available');
+      return false;
+    }
+    
+    // Create transporter with SMTP settings
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT),
-      secure: process.env.EMAIL_SECURE === 'true',
+      host,
+      port: Number(port),
+      secure,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user,
+        pass,
       },
     });
 
+    // Log email configuration (without password)
+    console.log('Sending email with configuration:', {
+      host,
+      port,
+      secure,
+      user,
+      from
+    });
+    
     // Send email
     const info = await transporter.sendMail({
-      from: `"Not At Home" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: from && from.includes('<') ? from : `"Not At Home" <${from || user || 'noreply@nothome.app'}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
