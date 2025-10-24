@@ -166,6 +166,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                 onSuccess();
               }
               
+              // Unify redirect through auth callback
+              window.location.href = '/auth/callback';
               return;
             } else {
               setError('No credentials returned from the server');
@@ -251,9 +253,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             onSuccess();
           }
           
-          // Redirect to role selection page
-          window.location.href = '/role-selection';
-          
+          // Unify redirect through auth callback
+          window.location.href = '/auth/callback';
           return;
         } else {
           setError('No session returned from the server');

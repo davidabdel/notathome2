@@ -34,6 +34,8 @@ export default function ManageCongregationAdminsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [requirePasswordReset, setRequirePasswordReset] = useState(true);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
   const [addError, setAddError] = useState('');
   
@@ -169,7 +171,9 @@ export default function ManageCongregationAdminsPage() {
         },
         body: JSON.stringify({
           email: newAdminEmail,
-          notification_email: notificationEmail || undefined
+          notification_email: notificationEmail || undefined,
+          temp_password: tempPassword || undefined,
+          require_password_reset: requirePasswordReset
         })
       });
       
@@ -192,6 +196,8 @@ export default function ManageCongregationAdminsPage() {
       setIsAddModalOpen(false);
       setNewAdminEmail('');
       setNotificationEmail('');
+      setTempPassword('');
+      setRequirePasswordReset(true);
       setSuccess('Invitation sent to the new congregation admin');
     } catch (err) {
       console.error('Error adding congregation admin:', err);
@@ -423,6 +429,26 @@ export default function ManageCongregationAdminsPage() {
                     onChange={(e) => setNotificationEmail(e.target.value)}
                     placeholder="Email to notify if no map is closed within 24 hours"
                   />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="temp-password">Temporary password (optional)</label>
+                  <input
+                    type="password"
+                    id="temp-password"
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    placeholder="Set an initial password"
+                  />
+                </div>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    id="require-reset"
+                    checked={requirePasswordReset}
+                    onChange={(e) => setRequirePasswordReset(e.target.checked)}
+                  />
+                  <label htmlFor="require-reset">Require password reset on first login</label>
                 </div>
                 
                 {addError && <div className="error-message">{addError}</div>}

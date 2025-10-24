@@ -64,9 +64,9 @@ export default function Home() {
         
         setIsAdmin(!!adminRoles && adminRoles.length > 0);
         
-        // Redirect to role selection page if user is logged in but not an admin
+        // Redirect authenticated users through unified auth callback
         if (!adminRoles || adminRoles.length === 0) {
-          window.location.href = '/role-selection';
+          window.location.href = '/auth/callback';
         }
       } catch (error) {
         console.error('Error checking user status:', error);
@@ -119,8 +119,8 @@ export default function Home() {
   const handleLoginSuccess = () => {
     // Update login status when login is successful
     setIsLoggedIn(true);
-    // Redirect to role selection page
-    window.location.href = '/role-selection';
+    // Redirect to unified auth callback
+    window.location.href = '/auth/callback';
   };
 
   const handleSignOut = async () => {

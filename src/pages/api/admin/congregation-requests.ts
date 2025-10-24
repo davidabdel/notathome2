@@ -131,6 +131,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   // User exists, use their ID
                   userId = existingUser.id;
                   console.log(`User with email ${requestData.contact_email} already exists with ID ${userId}`);
+                  // If a preferred password was provided, update the user's password
+                  if (requestData.preferred_password) {
+                    try {
+                      const { error: updatePwdError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                        password: requestData.preferred_password
+                      } as any);
+                      if (updatePwdError) {
+                        console.error('Error updating existing user password:', updatePwdError);
+                      } else {
+                        console.log('Updated existing user password from preferred_password');
+                      }
+                    } catch (e) {
+                      console.error('Exception updating existing user password:', e);
+                    }
+                  }
                 } else {
                   // Create a new user with a temporary password
                   const tempPassword = randomBytes(4).toString('hex');
@@ -138,7 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   try {
                     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
                       email: requestData.contact_email,
-                      password: tempPassword,
+                      password: requestData.preferred_password || tempPassword,
                       email_confirm: true
                     });
                     
@@ -151,7 +166,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     }
                     
                     userId = newUser.user.id;
-                    console.log(`Created new user with email ${requestData.contact_email}, ID ${userId}, and temp password ${tempPassword}`);
+                    console.log(`Created new user with email ${requestData.contact_email}, ID ${userId}. Using ${requestData.preferred_password ? 'preferred password' : 'temporary password ' + tempPassword}`);
                   } catch (e) {
                     console.error('Exception creating user:', e);
                     return res.status(500).json({ 

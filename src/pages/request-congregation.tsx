@@ -6,6 +6,7 @@ interface CongregationRequest {
   name: string;
   pin_code: string;
   contact_email: string;
+  preferred_password?: string;
 }
 
 export default function RequestCongregation() {
@@ -13,6 +14,7 @@ export default function RequestCongregation() {
     name: '',
     pin_code: '',
     contact_email: '',
+    preferred_password: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -47,6 +49,12 @@ export default function RequestCongregation() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.contact_email)) {
       setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate preferred password
+    if (!formData.preferred_password || formData.preferred_password.length < 8) {
+      setError('Preferred password must be at least 8 characters');
       return false;
     }
 
@@ -93,6 +101,7 @@ export default function RequestCongregation() {
         name: '',
         pin_code: '',
         contact_email: '',
+        preferred_password: '',
       });
     }
     
@@ -171,12 +180,26 @@ export default function RequestCongregation() {
                   />
                   <div className="input-hint">We'll notify you at this email when your request is approved</div>
                 </div>
+
+                <div className="form-group">
+                  <label htmlFor="preferred_password">Preferred Login Password</label>
+                  <input
+                    type="password"
+                    id="preferred_password"
+                    name="preferred_password"
+                    value={formData.preferred_password || ''}
+                    onChange={handleChange}
+                    required
+                    placeholder="At least 8 characters"
+                  />
+                  <div className="input-hint">This will be used as your admin login password for your congregation</div>
+                </div>
                 
                 {error && <div className="error-message">{error}</div>}
                 
                 <button 
                   type="submit" 
-                  disabled={loading || !formData.name || !formData.pin_code || !formData.contact_email}
+                  disabled={loading || !formData.name || !formData.pin_code || !formData.contact_email || !formData.preferred_password}
                   className="submit-button"
                 >
                   {loading ? 'Submitting...' : 'Submit Request'}

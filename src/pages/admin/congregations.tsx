@@ -152,27 +152,39 @@ export default function ManageCongregationsPage() {
     }
   };
 
-  // Handle deleting a congregation
+  // Handle deleting a congregation (use admin API to bypass RLS and clean dependencies)
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this congregation? This action cannot be undone.')) {
       return;
     }
     
     try {
-      console.log(`Deleting congregation ${id}...`);
+      console.log(`Deleting congregation ${id} via admin API...`);
       
-      const { error } = await supabase
-        .from('congregations')
-        .delete()
-        .eq('id', id);
+      // Get the current session for the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Failed to delete congregation: not authenticated');
+        return;
+      }
       
-      if (error) {
-        throw error;
+      const response = await fetch(`/api/admin/congregations/${id}/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      if (!response.ok) {
+        console.error('Delete API error:', result);
+        setError(result.error || result.message || 'Failed to delete congregation');
+        return;
       }
       
       // Refresh the congregations list
       await fetchCongregations();
-      
       console.log(`Congregation ${id} deleted successfully`);
     } catch (err) {
       console.error('Error deleting congregation:', err);

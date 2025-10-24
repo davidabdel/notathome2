@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } 
     else if (req.method === 'POST') {
       // Add a new congregation admin
-      const { email, notification_email } = req.body as { email?: string; notification_email?: string };
+      const { email, notification_email, temp_password, require_password_reset } = req.body as { email?: string; notification_email?: string; temp_password?: string; require_password_reset?: boolean };
       
       if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -123,23 +123,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!existingRoleError && existingRole && existingRole.length > 0) {
           return res.status(400).json({ error: 'User is already an admin for this congregation' });
         }
+
+        // If a temp password is provided, set it and optionally flag require_password_reset
+        if (temp_password || require_password_reset) {
+          const { error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            password: temp_password || undefined,
+            user_metadata: require_password_reset ? { ...(userExists.user_metadata || {}), require_password_reset: true } : undefined,
+          } as any);
+          if (updateUserError) {
+            console.error('Error updating existing user password/metadata:', updateUserError);
+            return res.status(500).json({ error: 'Failed to update existing user credentials' });
+          }
+        }
       } 
       else {
-        // Create a new user
-        const { data: newUser, error: newUserError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/auth/set-password`,
-          data: {
-            congregation_id: id,
-            role: 'congregation_admin'
+        // Create a new user: if temp_password provided, createUser with password; else invite
+        if (temp_password) {
+          const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password: temp_password,
+            email_confirm: true,
+            user_metadata: require_password_reset ? { require_password_reset: true } : undefined,
+          });
+          if (createError || !newUser?.user) {
+            console.error('Error creating user with temp password:', createError);
+            return res.status(500).json({ error: 'Failed to create user' });
           }
-        });
-        
-        if (newUserError || !newUser.user) {
-          console.error('Error creating user:', newUserError);
-          return res.status(500).json({ error: 'Failed to create user' });
+          userId = newUser.user.id;
+        } else {
+          const { data: newUser, error: newUserError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+            redirectTo: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/auth/set-password`,
+            data: {
+              congregation_id: id,
+              role: 'congregation_admin',
+              ...(require_password_reset ? { require_password_reset: true } : {}),
+            }
+          });
+          if (newUserError || !newUser?.user) {
+            console.error('Error inviting user:', newUserError);
+            return res.status(500).json({ error: 'Failed to create user' });
+          }
+          userId = newUser.user.id;
         }
-        
-        userId = newUser.user.id;
       }
       
       // Add congregation_admin role

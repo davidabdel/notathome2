@@ -95,12 +95,21 @@ export default function SetPassword() {
       }
       
       // Password updated successfully
-      setMessage('Password set successfully! You will be redirected to login.');
+      // Clear first-login reset flag, if present
+      try {
+        await supabase.auth.updateUser({
+          data: { require_password_reset: false }
+        } as any);
+      } catch (metaErr) {
+        console.warn('Failed clearing require_password_reset flag:', metaErr);
+      }
       
-      // Redirect to login page after a short delay
+      setMessage('Password set successfully! Redirecting...');
+      
+      // Route through unified callback to land in the correct area
       setTimeout(() => {
-        router.push('/login');
-      }, 3000);
+        router.push('/auth/callback');
+      }, 1000);
     } catch (err) {
       console.error('Error setting password:', err);
       setError(err instanceof Error ? err.message : 'Failed to set password. Please try again.');

@@ -7,6 +7,7 @@ interface CongregationRequest {
   name: string;
   pin_code: string;
   contact_email: string;
+  preferred_password?: string;
 }
 
 export default async function handler(
@@ -19,7 +20,7 @@ export default async function handler(
   }
 
   try {
-    const { name, pin_code, contact_email } = req.body as CongregationRequest;
+    const { name, pin_code, contact_email, preferred_password } = req.body as CongregationRequest;
 
     // Basic validation
     if (!name || !pin_code || !contact_email) {
@@ -30,14 +31,26 @@ export default async function handler(
       return res.status(400).json({ error: 'PIN code must be between 3 and 10 digits' });
     }
 
-    // Insert the request into the congregation_requests table
-    const { data, error } = await supabase
-      .from('congregation_requests')
-      .insert([{ name, pin_code, contact_email }]);
-
-    if (error) {
-      console.error('Error submitting congregation request:', error);
-      return res.status(500).json({ error: error.message });
+    let insertError = null as any;
+    let insertTriedWithoutPassword = false;
+    const payloadWithPassword: any = { name, pin_code, contact_email };
+    if (preferred_password) payloadWithPassword.preferred_password = preferred_password;
+    let insertResult = await supabase.from('congregation_requests').insert([payloadWithPassword]);
+    if (insertResult.error) {
+      insertError = insertResult.error;
+      if (preferred_password && (insertResult.error.code === '42703' || (insertResult.error.message || '').toLowerCase().includes('column'))) {
+        insertTriedWithoutPassword = true;
+        const fallbackResult = await supabase
+          .from('congregation_requests')
+          .insert([{ name, pin_code, contact_email }]);
+        if (fallbackResult.error) {
+          console.error('Error submitting congregation request:', fallbackResult.error);
+          return res.status(500).json({ error: fallbackResult.error.message });
+        }
+      } else {
+        console.error('Error submitting congregation request:', insertResult.error);
+        return res.status(500).json({ error: insertResult.error.message });
+      }
     }
 
     // Send email notification

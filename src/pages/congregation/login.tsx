@@ -87,6 +87,13 @@ export default function CongregationAdminLogin() {
         throw new Error('Failed to create session');
       }
       
+      // Enforce password reset on first login if flagged in user metadata
+      const mustReset = (session.user as any)?.user_metadata?.require_password_reset;
+      if (mustReset) {
+        router.push('/auth/set-password');
+        return;
+      }
+      
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('congregation_id, role')

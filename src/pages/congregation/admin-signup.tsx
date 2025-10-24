@@ -102,7 +102,7 @@ export default function CongregationAdminSignup() {
         email: email.trim(),
         password: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2),
         options: {
-          emailRedirectTo: `${window.location.origin}/congregation`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       
