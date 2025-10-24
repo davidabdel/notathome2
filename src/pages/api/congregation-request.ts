@@ -35,7 +35,7 @@ export default async function handler(
     let insertTriedWithoutPassword = false;
     const payloadWithPassword: any = { name, pin_code, contact_email };
     if (preferred_password) payloadWithPassword.preferred_password = preferred_password;
-    let insertResult = await supabase.from('congregation_requests').insert([payloadWithPassword]);
+    const insertResult = await supabase.from('congregation_requests').insert([payloadWithPassword]);
     if (insertResult.error) {
       insertError = insertResult.error;
       if (preferred_password && (insertResult.error.code === '42703' || (insertResult.error.message || '').toLowerCase().includes('column'))) {
