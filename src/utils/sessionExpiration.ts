@@ -23,7 +23,7 @@ export const checkAndEndExpiredSessions = async (): Promise<number> => {
       return 0;
     }
     
-    console.log('Checking for expired sessions...');
+    console.log('Checking session notifications (23h) and expirations (24h)...');
     
     // Get current time
     const now = new Date();
@@ -35,6 +35,32 @@ export const checkAndEndExpiredSessions = async (): Promise<number> => {
     const expirationThreshold = new Date(now);
     expirationThreshold.setHours(expirationThreshold.getHours() - 24);
     
+    // Check for sessions approaching expiration (23 hours old) to send notifications
+    const { data: approachingExpirationSessions, error: notificationError } = await supabase
+      .from('sessions')
+      .select('id, code, created_at, expires_at')
+      .eq('is_active', true)
+      .lt('created_at', notificationThreshold.toISOString())
+      .gt('created_at', expirationThreshold.toISOString());
+    
+    if (notificationError) {
+      console.error('Error fetching sessions approaching expiration:', notificationError);
+    } else {
+      if (approachingExpirationSessions && approachingExpirationSessions.length > 0) {
+        console.log(`Found ${approachingExpirationSessions.length} sessions approaching expiration (23 hours old)`);
+        // Send notifications for sessions approaching expiration
+        for (const session of approachingExpirationSessions) {
+          console.log(`Sending notification for session approaching expiration: ${session.id} (Code: ${session.code}, Created: ${new Date(session.created_at).toLocaleString()}, Expires in ~1 hour)`);
+          try {
+            await sendSessionExpirationNotification(session.id, true); // true = approaching expiration
+          } catch (notifError) {
+            console.error(`Error sending notification for session ${session.id}:`, notifError);
+          }
+        }
+      } else {
+        console.log('No sessions approaching expiration');
+      }
+    }
     // Find all active sessions that have expired (more than 24 hours old)
     const { data: expiredSessions, error } = await supabase
       .from('sessions')
@@ -46,55 +72,24 @@ export const checkAndEndExpiredSessions = async (): Promise<number> => {
       console.error('Error fetching expired sessions:', error);
       return 0;
     }
-    
+
+    let endedCount = 0;
     if (!expiredSessions || expiredSessions.length === 0) {
       console.log('No expired sessions found');
-      return 0;
-    }
-    
-    console.log(`Found ${expiredSessions.length} expired sessions to end`);
-    
-    // Check for sessions approaching expiration (23 hours old) to send notifications
-    const { data: approachingExpirationSessions, error: notificationError } = await supabase
-      .from('sessions')
-      .select('id, code, created_at, expires_at')
-      .eq('is_active', true)
-      .lt('created_at', notificationThreshold.toISOString())
-      .gt('created_at', expirationThreshold.toISOString());
-    
-    if (notificationError) {
-      console.error('Error fetching sessions approaching expiration:', notificationError);
-    } else if (approachingExpirationSessions && approachingExpirationSessions.length > 0) {
-      console.log(`Found ${approachingExpirationSessions.length} sessions approaching expiration (23 hours old)`);  
-      
-      // Send notifications for sessions approaching expiration
-      for (const session of approachingExpirationSessions) {
-        console.log(`Sending notification for session approaching expiration: ${session.id} (Code: ${session.code}, Created: ${new Date(session.created_at).toLocaleString()}, Expires in ~1 hour)`);  
-        
-        try {
-          await sendSessionExpirationNotification(session.id, true); // true = approaching expiration
-        } catch (notifError) {
-          console.error(`Error sending notification for session ${session.id}:`, notifError);
+    } else {
+      console.log(`Found ${expiredSessions.length} expired sessions to end`);
+      // End each expired session (24+ hours old)
+      for (const session of expiredSessions) {
+        console.log(`Ending expired session: ${session.id} (Code: ${session.code}, Created: ${new Date(session.created_at).toLocaleString()}, Expired: ${new Date(session.expires_at).toLocaleString()})`);
+        const success = await endSession(session.id);
+        if (success) {
+          endedCount++;
+          console.log(`Successfully ended session ${session.id}`);
+        } else {
+          console.error(`Failed to end session ${session.id}`);
         }
       }
-    } else {
-      console.log('No sessions approaching expiration');
     }
-    
-    // End each expired session (24+ hours old)
-    let endedCount = 0;
-    for (const session of expiredSessions) {
-      console.log(`Ending expired session: ${session.id} (Code: ${session.code}, Created: ${new Date(session.created_at).toLocaleString()}, Expired: ${new Date(session.expires_at).toLocaleString()})`);
-      
-      const success = await endSession(session.id);
-      if (success) {
-        endedCount++;
-        console.log(`Successfully ended session ${session.id}`);
-      } else {
-        console.error(`Failed to end session ${session.id}`);
-      }
-    }
-    
     console.log(`Ended ${endedCount} expired sessions`);
     return endedCount;
   } catch (err) {

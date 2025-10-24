@@ -21,6 +21,7 @@ export default function NewUserPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [requirePasswordReset, setRequirePasswordReset] = useState(true);
 
   useEffect(() => {
     const checkAdminAndFetchData = async () => {
@@ -101,47 +102,35 @@ export default function NewUserPage() {
     setSuccess('');
     
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: email.trim(),
-        password: password.trim(),
-        email_confirm: true
+      // Use server-side admin API with service role via bearer token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
+          roles,
+          congregationId,
+          require_password_reset: requirePasswordReset,
+        }),
       });
-      
-      if (authError) {
-        throw authError;
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create user');
       }
-      
-      if (!authData.user) {
-        throw new Error('Failed to create user');
-      }
-      
-      const userId = authData.user.id;
-      
-      // Assign roles to the user
-      for (const role of roles) {
-        const roleData = {
-          user_id: userId,
-          role: role,
-          user_email: email.trim()
-        };
-        
-        // If role is congregation_admin or user, add congregation_id
-        if ((role === 'congregation_admin' || role === 'user') && congregationId) {
-          Object.assign(roleData, { congregation_id: congregationId });
-        }
-        
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert(roleData);
-        
-        if (roleError) {
-          console.error(`Error assigning ${role} role:`, roleError);
-        }
-      }
-      
+
+      const userId = data.userId;
       setSuccess('User created successfully');
-      
+
       // Redirect to the user details page
       setTimeout(() => {
         router.push(`/admin/users/${userId}`);
@@ -201,6 +190,17 @@ export default function NewUserPage() {
                 required
               />
               <p className="form-help">Temporary password for the user's first login</p>
+            </div>
+            
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                id="require-reset"
+                checked={requirePasswordReset}
+                onChange={(e) => setRequirePasswordReset(e.target.checked)}
+                disabled={loading}
+              />
+              <label htmlFor="require-reset">Require password reset on first login</label>
             </div>
             
             <div className="form-group">
