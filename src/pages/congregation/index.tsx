@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
-import Link from 'next/link';
 import TerritoryMapsManager from '../../components/congregation/TerritoryMapsManager';
 import CongregationInfo from '../../components/congregation/CongregationInfo';
 import { FaMap, FaInfoCircle } from 'react-icons/fa';
@@ -103,9 +102,6 @@ export default function CongregationDashboard() {
     return (
       <div className="error-container">
         <div className="error-message">{error}</div>
-        <Link href="/fix-database">
-          <div className="fix-database-link">Go to Fix Database Page</div>
-        </Link>
       </div>
     );
   }
@@ -114,9 +110,6 @@ export default function CongregationDashboard() {
     return (
       <div className="error-container">
         <div className="error-message">Congregation not found</div>
-        <Link href="/fix-database">
-          <div className="fix-database-link">Go to Fix Database Page</div>
-        </Link>
       </div>
     );
   }
