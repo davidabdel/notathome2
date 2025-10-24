@@ -245,6 +245,11 @@ export default function RoleSelection() {
           </div>
         </div>
       </main>
+      <footer className="footer">
+        <a href="https://www.nothome.app/congregation" className="footer-link" target="_blank" rel="noopener noreferrer">
+          https://www.nothome.app/congregation
+        </a>
+      </footer>
       
       <style jsx>{`
         .container {
@@ -495,7 +500,22 @@ export default function RoleSelection() {
             transform: rotate(360deg);
           }
         }
+
+        .footer {
+          padding: 1rem;
+          text-align: center;
+          background: white;
+          border-top: 1px solid #e5e7eb;
+        }
+        .footer-link {
+          color: #2563eb;
+          text-decoration: none;
+          font-size: 0.9rem;
+        }
+        .footer-link:hover {
+          text-decoration: underline;
+        }
       `}</style>
     </div>
   );
-} 
+}
