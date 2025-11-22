@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase/config';
+import { X, MapPin, Loader2 } from 'lucide-react';
 
 interface MapSelectionModalProps {
   isOpen: boolean;
@@ -30,14 +31,14 @@ const EnhancedMapSelectionModal: React.FC<MapSelectionModalProps> = ({
   const fetchMapCount = async () => {
     try {
       setLoading(true);
-      
+
       // Try to get the actual count of maps from the territory_maps table
       const { data, error } = await supabase
         .from('territory_maps')
         .select('id')
         .eq('congregation_id', congregationId)
         .eq('status', 'active');
-      
+
       if (!error && data) {
         // If we have maps, use the actual count
         setMapCount(Math.max(data.length, 35)); // Ensure at least 35 maps
@@ -62,7 +63,7 @@ const EnhancedMapSelectionModal: React.FC<MapSelectionModalProps> = ({
   };
 
   if (!isOpen) return null;
-  
+
   console.log('EnhancedMapSelectionModal: Rendering with selectedMap:', selectedMap, 'mapCount:', mapCount);
 
   // Generate map number buttons (5 columns x 7 rows = 35 maps)
@@ -86,22 +87,35 @@ const EnhancedMapSelectionModal: React.FC<MapSelectionModalProps> = ({
     <div className="enhanced-modal-overlay">
       <div className="enhanced-modal-content">
         <button className="enhanced-close-button" onClick={onClose}>
-          ×
+          <X size={24} />
         </button>
-        
-        <h2>Create New Session</h2>
-        <p className="enhanced-subtitle">Select a map number for this session</p>
-        
-        <div className="enhanced-map-grid">
-          {renderMapButtons()}
+
+        <div className="modal-header">
+          <div className="icon-wrapper">
+            <MapPin size={24} />
+          </div>
+          <div>
+            <h2>Create New Session</h2>
+            <p className="enhanced-subtitle">Select a map number for this session</p>
+          </div>
         </div>
-        
+
+        {loading ? (
+          <div className="loading-container">
+            <Loader2 className="animate-spin" size={32} />
+          </div>
+        ) : (
+          <div className="enhanced-map-grid">
+            {renderMapButtons()}
+          </div>
+        )}
+
         <div className="enhanced-modal-actions">
           <button className="enhanced-cancel-button" onClick={onClose}>
             Cancel
           </button>
-          <button 
-            className="enhanced-confirm-button" 
+          <button
+            className="enhanced-confirm-button"
             onClick={handleConfirm}
             disabled={selectedMap === null}
           >
@@ -109,7 +123,7 @@ const EnhancedMapSelectionModal: React.FC<MapSelectionModalProps> = ({
           </button>
         </div>
       </div>
-      
+
       <style jsx global>{`
         .enhanced-modal-overlay {
           position: fixed;
@@ -122,129 +136,177 @@ const EnhancedMapSelectionModal: React.FC<MapSelectionModalProps> = ({
           justify-content: center;
           align-items: center;
           z-index: 1000;
+          backdrop-filter: blur(4px);
         }
         
         .enhanced-modal-content {
-          background-color: white;
-          border-radius: 0.5rem;
-          padding: 1.5rem;
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-xl);
+          padding: var(--space-6);
           width: 95%;
           max-width: 550px;
           max-height: 90vh;
           overflow-y: auto;
           position: relative;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+          box-shadow: var(--shadow-xl);
+          border: 1px solid var(--color-border);
         }
         
         .enhanced-close-button {
           position: absolute;
-          top: 0.75rem;
-          right: 0.75rem;
+          top: var(--space-4);
+          right: var(--space-4);
           background: none;
           border: none;
-          font-size: 1.5rem;
           cursor: pointer;
-          color: #6b7280;
+          color: var(--color-text-tertiary);
+          padding: var(--space-1);
+          border-radius: var(--radius-md);
+          transition: all 0.2s;
+        }
+        
+        .enhanced-close-button:hover {
+          background-color: var(--color-bg-surface);
+          color: var(--color-text-main);
+        }
+        
+        .modal-header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
+          margin-bottom: var(--space-6);
+        }
+        
+        .icon-wrapper {
+          width: 48px;
+          height: 48px;
+          border-radius: var(--radius-lg);
+          background-color: #eff6ff;
+          color: var(--color-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
         h2 {
-          margin-top: 0;
-          margin-bottom: 0.5rem;
-          font-size: 1.5rem;
-          font-weight: 600;
-          color: #111827;
+          margin: 0 0 var(--space-1) 0;
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--color-text-main);
         }
         
         .enhanced-subtitle {
-          color: #6b7280;
-          margin-bottom: 1.5rem;
+          color: var(--color-text-secondary);
+          margin: 0;
+          font-size: 0.875rem;
+        }
+        
+        .loading-container {
+          display: flex;
+          justify-content: center;
+          padding: var(--space-8);
+          color: var(--color-primary);
         }
         
         .enhanced-map-grid {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          gap: 0.75rem;
-          margin-bottom: 1.5rem;
+          gap: var(--space-3);
+          margin-bottom: var(--space-6);
         }
         
         .enhanced-map-button {
-          background-color: #f9fafb;
-          border: 1px solid #d1d5db;
-          border-radius: 0.375rem;
-          padding: 0.5rem 0;
-          font-size: 1.25rem;
-          font-weight: 500;
+          background-color: var(--color-bg-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          padding: var(--space-2) 0;
+          font-size: 1.125rem;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
-          height: 4rem;
+          height: 3.5rem;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 100%;
+          color: var(--color-text-main);
         }
         
         .enhanced-map-button:hover {
-          background-color: #f3f4f6;
-          border-color: #9ca3af;
+          border-color: var(--color-primary-light);
+          color: var(--color-primary);
+          transform: translateY(-1px);
         }
         
         .enhanced-map-button.enhanced-selected {
-          background-color: #4f46e5;
-          border-color: #4f46e5;
+          background-color: var(--color-primary);
+          border-color: var(--color-primary);
           color: white;
-          font-weight: 600;
+          box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
         }
         
         .enhanced-modal-actions {
           display: flex;
           justify-content: flex-end;
-          gap: 0.75rem;
+          gap: var(--space-3);
         }
         
         .enhanced-cancel-button {
-          background-color: white;
-          border: 1px solid #d1d5db;
-          color: #374151;
+          background-color: transparent;
+          border: 1px solid var(--color-border);
+          color: var(--color-text-secondary);
           font-size: 0.875rem;
-          font-weight: 500;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
+          font-weight: 600;
+          padding: 0.625rem 1rem;
+          border-radius: var(--radius-lg);
           cursor: pointer;
           transition: all 0.2s;
         }
         
         .enhanced-cancel-button:hover {
-          background-color: #f3f4f6;
+          background-color: var(--color-bg-surface);
+          color: var(--color-text-main);
         }
         
         .enhanced-confirm-button {
-          background-color: #4f46e5;
+          background-color: var(--color-primary);
           border: none;
           color: white;
           font-size: 0.875rem;
-          font-weight: 500;
-          padding: 0.75rem 1.25rem;
-          border-radius: 0.375rem;
+          font-weight: 600;
+          padding: 0.625rem 1.25rem;
+          border-radius: var(--radius-lg);
           cursor: pointer;
           transition: all 0.2s;
         }
         
         .enhanced-confirm-button:hover:not(:disabled) {
-          background-color: #4338ca;
+          background-color: var(--color-primary-hover);
+          transform: translateY(-1px);
         }
         
         .enhanced-confirm-button:disabled {
-          opacity: 0.7;
+          opacity: 0.6;
           cursor: not-allowed;
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         
         @media (max-width: 640px) {
           .enhanced-map-grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
           }
           
           .enhanced-map-button {
-            height: 4.5rem;
+            height: 3rem;
+            font-size: 1rem;
           }
         }
       `}</style>
@@ -252,4 +314,4 @@ const EnhancedMapSelectionModal: React.FC<MapSelectionModalProps> = ({
   );
 };
 
-export default EnhancedMapSelectionModal; 
+export default EnhancedMapSelectionModal;

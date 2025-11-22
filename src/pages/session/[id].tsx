@@ -11,6 +11,7 @@ import LocationRecorder from '../../components/LocationRecorder';
 import AddressList from '../../components/AddressList';
 import MapSelector from '../../components/MapSelector';
 import ShareSessionModal from '../../components/ShareSessionModal';
+import { ArrowLeft, MapPin, AlertCircle, Loader2 } from 'lucide-react';
 
 interface SessionData {
   id: string;
@@ -40,20 +41,21 @@ const supabaseClient: SupabaseClient = supabase;
 const SessionPage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
-  
+
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [refreshAddresses, setRefreshAddresses] = useState<number>(0);
+  const [totalBlocks, setTotalBlocks] = useState<number>(10);
 
   const fetchSessionData = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Fetch session data
       const { data, error } = await supabaseClient
         .from('sessions')
@@ -69,17 +71,17 @@ const SessionPage: React.FC = () => {
         `)
         .eq('id', id)
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       if (!data) {
         setError('Session not found');
         setLoading(false);
         return;
       }
-      
+
       // Format the session data
       const sessionResponse = data as unknown as SessionResponse;
       const sessionData: SessionData = {
@@ -92,9 +94,9 @@ const SessionPage: React.FC = () => {
         is_active: sessionResponse.is_active,
         map_number: sessionResponse.map_number
       };
-      
+
       setSession(sessionData);
-      
+
       // If the session already has a map number, set it as selected
       if (sessionData.map_number) {
         setSelectedMap(sessionData.map_number);
@@ -109,9 +111,9 @@ const SessionPage: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
-    
+
     fetchSessionData();
-    
+
     // Subscribe to session updates
     const unsubscribe = subscribeToSessionUpdates(
       id as string,
@@ -120,7 +122,7 @@ const SessionPage: React.FC = () => {
         fetchSessionData();
       }
     );
-    
+
     return () => {
       unsubscribe();
     };
@@ -128,7 +130,7 @@ const SessionPage: React.FC = () => {
 
   const handleMapSelected = async (mapNumber: number) => {
     setSelectedMap(mapNumber);
-    
+
     // Update the session with the selected map number
     if (session) {
       try {
@@ -136,7 +138,7 @@ const SessionPage: React.FC = () => {
           .from('sessions')
           .update({ map_number: mapNumber })
           .eq('id', session.id);
-          
+
         if (error) {
           console.error('Error updating session map number:', error);
         }
@@ -155,45 +157,126 @@ const SessionPage: React.FC = () => {
     setRefreshAddresses(prev => prev + 1);
   };
 
+  const handleMapDetailsLoaded = (details: { blocks: number }) => {
+    setTotalBlocks(details.blocks);
+  };
+
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading session data...</div>
+      <div className="page-wrapper">
+        <div className="loading-container">
+          <Loader2 size={40} className="animate-spin text-primary" />
+          <p className="loading-text">Loading session data...</p>
+        </div>
+        <style jsx>{`
+          .page-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-bg-body);
+          }
+          .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-4);
+          }
+          .loading-text {
+            color: var(--color-text-secondary);
+            font-weight: 500;
+          }
+          .text-primary { color: var(--color-primary); }
+          .animate-spin { animation: spin 1s linear infinite; }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="container">
-        <div className="error-message">
-          {error || 'Session not found'}
+      <div className="page-wrapper">
+        <div className="error-container">
+          <AlertCircle size={48} className="error-icon" />
+          <h2 className="error-title">{error || 'Session not found'}</h2>
+          <Link href="/" className="btn btn-primary">
+            Return to Home
+          </Link>
         </div>
-        <Link href="/" className="back-link">
-          Return to Home
-        </Link>
+        <style jsx>{`
+          .page-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-bg-body);
+            padding: var(--space-6);
+          }
+          .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background-color: var(--color-bg-card);
+            padding: var(--space-8);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid var(--color-border);
+          }
+          .error-icon {
+            color: var(--color-error);
+            margin-bottom: var(--space-4);
+          }
+          .error-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-text-main);
+            margin: 0 0 var(--space-6) 0;
+          }
+          .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+          }
+          .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+          }
+          .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="container">
+    <div className="page-wrapper">
       <Head>
         <title>Session: {session.code} | Not At Home</title>
         <meta name="description" content="Active outreach session" />
       </Head>
 
-      <main>
+      <main className="main-content">
         <div className="content-container">
           <div className="header">
             <Link href="/" className="back-link">
-              &larr; Home
+              <ArrowLeft size={16} className="mr-1" /> Home
             </Link>
             <h1 className="title">Session: {session.code}</h1>
           </div>
 
           {!session.is_active && (
-            <div className="inactive-message">
+            <div className="alert alert-error">
+              <AlertCircle size={20} className="mr-2" />
               This session is no longer active. Recording is disabled.
             </div>
           )}
@@ -201,45 +284,55 @@ const SessionPage: React.FC = () => {
           {session.is_active && (
             <>
               {!selectedMap ? (
-                <div className="section">
-                  <MapSelector 
-                    sessionId={session.id} 
-                    onMapSelected={handleMapSelected} 
+                <div className="card section">
+                  <MapSelector
+                    sessionId={session.id}
+                    onMapSelected={handleMapSelected}
                   />
                 </div>
               ) : (
                 <>
-                  <div className="section map-section">
+                  <div className="card section map-section">
                     <div className="section-header">
-                      <h2 className="section-title">Territory Map {selectedMap}</h2>
+                      <h2 className="section-title">
+                        <MapPin size={20} className="mr-2 text-primary" />
+                        Territory Map {selectedMap}
+                      </h2>
                     </div>
-                    <>{console.log('Rendering TerritoryMap with mapNumber:', selectedMap, typeof selectedMap)}</>
-                    <TerritoryMap mapNumber={selectedMap} />
+                    <TerritoryMap
+                      mapNumber={selectedMap}
+                      onMapDetailsLoaded={handleMapDetailsLoaded}
+                    />
                   </div>
 
-                  <div className="section">
+                  <div className="card section">
                     <h2 className="section-title">Select Block</h2>
-                    <BlockSelector 
-                      selectedBlock={selectedBlock} 
-                      onSelectBlock={handleBlockSelected} 
+                    <BlockSelector
+                      selectedBlock={selectedBlock}
+                      onSelectBlock={handleBlockSelected}
+                      totalBlocks={totalBlocks}
                     />
-                    
+
                     <div className="block-actions">
-                      <h3 className="block-number">{selectedBlock || 'None'}</h3>
-                      <LocationRecorder 
-                        sessionId={session.id} 
+                      <div className="block-indicator">
+                        <span className="label">Selected Block:</span>
+                        <span className="value">{selectedBlock || 'None'}</span>
+                      </div>
+                      <LocationRecorder
+                        sessionId={session.id}
                         selectedBlock={selectedBlock}
                         onLocationRecorded={handleLocationRecorded}
                       />
                     </div>
                   </div>
 
-                  <div className="section">
-                    <h2 className="section-title">Not Home</h2>
-                    <AddressList 
+                  <div className="card section">
+                    <h2 className="section-title">Not Home List</h2>
+                    <AddressList
                       sessionId={session.id}
                       selectedBlock={null}
                       onAddressUpdated={handleLocationRecorded}
+                      refreshTrigger={refreshAddresses}
                     />
                   </div>
                 </>
@@ -250,123 +343,172 @@ const SessionPage: React.FC = () => {
       </main>
 
       <style jsx>{`
-        .container {
+        .page-wrapper {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background-color: #f9fafb;
-          color: #111827;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background-color: #f8fafc;
+          color: #1e293b;
         }
 
-        main {
+        .main-content {
           flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 1rem;
+          padding: var(--space-6);
           width: 100%;
         }
 
         .content-container {
           width: 100%;
-          max-width: 768px;
+          max-width: 640px;
         }
 
         .header {
           display: flex;
           flex-direction: column;
-          margin-bottom: 1rem;
+          margin-bottom: var(--space-8);
+          text-align: center;
         }
 
         .back-link {
-          color: #2563eb;
+          display: inline-flex;
+          align-items: center;
+          align-self: center;
+          color: #64748b;
           text-decoration: none;
           font-size: 0.875rem;
-          margin-bottom: 0.5rem;
+          font-weight: 500;
+          margin-bottom: var(--space-4);
+          transition: color 0.2s;
+          padding: 0.5rem 1rem;
+          background: white;
+          border-radius: 9999px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
         .back-link:hover {
-          text-decoration: underline;
+          color: #0f172a;
+          background: #f1f5f9;
         }
 
         .title {
           margin: 0;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #111827;
+          font-size: 2rem;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.03em;
+          line-height: 1.2;
+        }
+
+        .card {
+          background-color: white;
+          border-radius: 1.5rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+          border: 1px solid #f1f5f9;
+          overflow: hidden;
+          margin-bottom: var(--space-6);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .section {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          padding: 1rem;
-          margin-bottom: 1rem;
+          padding: 2rem;
         }
 
         .section-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 0.75rem;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid #f1f5f9;
         }
 
         .section-title {
           margin: 0;
           font-size: 1.125rem;
-          font-weight: 600;
-          color: #111827;
-          margin-bottom: 0.75rem;
+          font-weight: 700;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          letter-spacing: -0.01em;
         }
-
-        .map-section .section-title {
-          margin-bottom: 0;
+        
+        .map-section .section-header {
+           border-bottom: none;
+           margin-bottom: 0.5rem;
+           padding-bottom: 0;
         }
 
         .block-actions {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px solid #e5e7eb;
+          margin-top: 2rem;
+          padding-top: 2rem;
+          border-top: 1px dashed #e2e8f0;
         }
 
-        .block-number {
-          margin: 0 0 0.75rem 0;
-          font-size: 1rem;
-          font-weight: 500;
-          color: #111827;
-        }
-
-        .inactive-message {
-          background-color: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
-          padding: 1rem;
-          border-radius: 8px;
-          text-align: center;
-          font-weight: 500;
-          margin-bottom: 1rem;
-        }
-
-        .loading {
+        .block-indicator {
           display: flex;
-          justify-content: center;
           align-items: center;
-          height: 100vh;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
           font-size: 1rem;
-          color: #6b7280;
+          background: #f8fafc;
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          border: 1px solid #e2e8f0;
+        }
+        
+        .label {
+          color: #64748b;
+          font-weight: 500;
+        }
+        
+        .value {
+          font-weight: 700;
+          color: #0f172a;
+          background: white;
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.5rem;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
-        .error-message {
-          background-color: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
+        .alert {
           padding: 1rem;
-          border-radius: 8px;
-          text-align: center;
-          margin-bottom: 1rem;
+          border-radius: 1rem;
+          margin-bottom: 2rem;
+          display: flex;
+          align-items: center;
+          font-weight: 500;
+          font-size: 0.95rem;
+        }
+        
+        .alert-error {
+          background-color: #fef2f2;
+          color: #ef4444;
+          border: 1px solid #fee2e2;
+        }
+
+        .mr-1 { margin-right: 0.25rem; }
+        .mr-2 { margin-right: 0.5rem; }
+        .text-primary { color: #2563eb; }
+        
+        @media (max-width: 640px) {
+          .main-content {
+            padding: 1rem;
+          }
+          
+          .section {
+            padding: 1.5rem;
+          }
+          
+          .title {
+            font-size: 1.75rem;
+          }
         }
       `}</style>
     </div>
   );
 };
 
-export default SessionPage; 
+export default SessionPage;

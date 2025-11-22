@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../supabase/config';
+import { Building, Lock, Loader2, AlertCircle, Search } from 'lucide-react';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -10,7 +11,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [congregationName, setCongregationName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   // Autocomplete states
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -59,8 +60,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) && 
-          inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current && !inputRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
     };
@@ -83,7 +84,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (pin.length < 3 || pin.length > 10) {
       setError('PIN must be between 3 and 10 digits');
       return;
@@ -95,16 +96,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     try {
       // Trim the congregation name to remove any leading/trailing spaces
       const trimmedName = congregationName.trim();
-      
-      console.log('Attempting login with:', { 
-        congregationName: trimmedName, 
-        pinLength: pin.length 
+
+      console.log('Attempting login with:', {
+        congregationName: trimmedName,
+        pinLength: pin.length
       });
-      
+
       // Special case for Admin Congregation - use the admin-login API
       if (trimmedName.toLowerCase() === 'admin congregation' && trimmedName !== 'Admin Congregation') {
         console.log('Attempting Admin Congregation login via API');
-        
+
         try {
           const response = await fetch('/api/admin-login', {
             method: 'POST',
@@ -113,59 +114,59 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             },
             body: JSON.stringify({ pin }),
           });
-          
+
           const data = await response.json();
           console.log('Admin login API response:', data);
-          
+
           if (response.ok) {
             console.log('Admin login successful, signing in with credentials');
-            
+
             // Sign in with the credentials provided by the API
             if (data.credentials) {
               const { email, password } = data.credentials;
-              
+
               // Check if this is the superadmin account
               if (email === 'david@uconnect.com.au') {
                 console.log('Superadmin detected, redirecting to Admin Dashboard');
-                
+
                 const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                   email,
                   password
                 });
-                
+
                 if (signInError) {
                   console.error('Error signing in with credentials:', signInError);
                   setError('Error signing in with credentials: ' + signInError.message);
                   setLoading(false);
                   return;
                 }
-                
+
                 console.log('Sign in successful:', signInData);
-                
+
                 // Redirect directly to admin dashboard
                 window.location.href = '/admin';
                 return;
               }
-              
+
               const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email,
                 password
               });
-              
+
               if (signInError) {
                 console.error('Error signing in with credentials:', signInError);
                 setError('Error signing in with credentials: ' + signInError.message);
                 setLoading(false);
                 return;
               }
-              
+
               console.log('Sign in successful:', signInData);
-              
+
               // Call the success callback
               if (onSuccess) {
                 onSuccess();
               }
-              
+
               return;
             } else {
               setError('No credentials returned from the server');
@@ -184,58 +185,58 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           return;
         }
       }
-      
+
       // For all congregations, use the congregation-login API
       try {
         // First try to get all congregations to debug (this will likely fail due to RLS)
         const { data: allCongregations, error: allError } = await supabase
           .from('congregations')
           .select('id, name, pin_code, status');
-        
+
         // Call the direct-insert API to ensure Admin Congregation exists
         const directInsertResponse = await fetch('/api/direct-insert');
         await directInsertResponse.json();
-        
+
         // Call the congregation-login API
         const response = await fetch('/api/congregation-login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
-            congregationName: trimmedName, 
-            pin 
+          body: JSON.stringify({
+            congregationName: trimmedName,
+            pin
           }),
         });
-        
+
         const data = await response.json();
         console.log('Congregation login API response:', data);
-        
+
         if (!response.ok) {
           setError(data.error || 'Failed to login');
           setLoading(false);
           return;
         }
-        
+
         // Set the session from the API response
         if (data.session) {
           const { access_token, refresh_token } = data.session;
-          
+
           // Set the session in Supabase
           const { error: sessionError } = await supabase.auth.setSession({
             access_token,
             refresh_token
           });
-          
+
           if (sessionError) {
             console.error('Error setting session:', sessionError);
             setError('Error setting session: ' + sessionError.message);
             setLoading(false);
             return;
           }
-          
+
           console.log('Login successful for congregation:', data.congregation.name);
-          
+
           // Store congregation data in localStorage
           if (data.congregation) {
             localStorage.setItem('congregationData', JSON.stringify({
@@ -245,15 +246,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             }));
             console.log('Stored congregation data in localStorage');
           }
-          
+
           // Call the success callback
           if (onSuccess) {
             onSuccess();
           }
-          
+
           // Redirect to role selection page
           window.location.href = '/role-selection';
-          
+
           return;
         } else {
           setError('No session returned from the server');
@@ -274,42 +275,47 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="login-form-container">
-      <p className="subtitle">Congregation Access</p>
-      
+    <div className="login-form-wrapper">
+      <h3 className="form-title">Congregation Access</h3>
+
       <form onSubmit={handleSubmit} className="login-form">
-        <div className="form-group">
-          <label htmlFor="congregation-name">Congregation Name</label>
+        <div className="input-group">
+          <label htmlFor="congregation-name" className="input-label">Congregation Name</label>
           <div className="autocomplete-container">
-            <input
-              type="text"
-              id="congregation-name"
-              ref={inputRef}
-              value={congregationName}
-              onChange={(e) => setCongregationName(e.target.value)}
-              onFocus={() => {
-                if (suggestions.length > 0) {
-                  setShowSuggestions(true);
-                }
-              }}
-              placeholder="Enter congregation name"
-              required
-              autoComplete="off"
-              className="full-width-input"
-            />
-            {fetchingSuggestions && (
-              <div className="loading-indicator">
-                <div className="spinner"></div>
-              </div>
-            )}
+            <div className="input-wrapper">
+              <Building className="input-icon" size={20} />
+              <input
+                type="text"
+                id="congregation-name"
+                ref={inputRef}
+                value={congregationName}
+                onChange={(e) => setCongregationName(e.target.value)}
+                onFocus={() => {
+                  if (suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                placeholder="Enter congregation name"
+                required
+                autoComplete="off"
+                className="input-field with-icon"
+              />
+              {fetchingSuggestions && (
+                <div className="loading-indicator">
+                  <Loader2 className="spinner" size={16} />
+                </div>
+              )}
+            </div>
+
             {showSuggestions && (
               <div className="suggestions-container" ref={suggestionsRef}>
                 {suggestions.map((suggestion, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="suggestion-item"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
+                    <Search size={14} className="suggestion-icon" />
                     {suggestion}
                   </div>
                 ))}
@@ -317,115 +323,129 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             )}
           </div>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="pin">PIN Code</label>
-          <input
-            type="password"
-            id="pin"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="Same as your Zoom PIN"
-            required
-          />
+
+        <div className="input-group">
+          <label htmlFor="pin" className="input-label">PIN Code</label>
+          <div className="input-wrapper">
+            <Lock className="input-icon" size={20} />
+            <input
+              type="password"
+              id="pin"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="Same as your Zoom PIN"
+              required
+              className="input-field with-icon"
+            />
+          </div>
         </div>
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        <button 
-          type="submit" 
-          className="login-button"
+
+        {error && (
+          <div className="error-message">
+            <AlertCircle size={18} className="error-icon" />
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="btn btn-primary w-full"
           disabled={loading}
         >
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? (
+            <>
+              <Loader2 size={18} className="animate-spin mr-2" />
+              Logging in...
+            </>
+          ) : 'Login'}
         </button>
-        
+
         <div className="request-link">
           <p>Need access for your congregation?</p>
           <a href="/request-congregation">Request Access</a>
         </div>
       </form>
-      
+
       <style jsx>{`
-        .login-form-container {
+        .login-form-wrapper {
           width: 100%;
-          padding: 2rem;
         }
         
-        .subtitle {
+        .form-title {
           text-align: center;
-          color: #666;
-          margin-bottom: 2rem;
-          font-size: 1.2rem;
+          color: var(--color-text-secondary);
+          margin: 0 0 var(--space-6) 0;
+          font-size: 1.125rem;
+          font-weight: 500;
         }
         
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: var(--space-4);
         }
         
-        .form-group {
+        .input-group {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: var(--space-2);
         }
         
-        label {
+        .input-label {
+          font-size: 0.875rem;
           font-weight: 600;
-          color: #444;
-          font-size: 0.95rem;
+          color: var(--color-text-main);
         }
         
-        input {
-          padding: 0.75rem;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: all 0.2s;
+        .input-wrapper {
+          position: relative;
+        }
+        
+        .input-icon {
+          position: absolute;
+          left: var(--space-3);
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--color-text-tertiary);
+          pointer-events: none;
+        }
+        
+        .input-field {
           width: 100%;
-          background-color: #f9fafb;
+          padding: var(--space-3);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          font-size: 1rem;
+          transition: all 0.2s ease;
+          background-color: var(--color-bg-input);
+          color: var(--color-text-main);
         }
         
-        input:focus {
-          border-color: #4a90e2;
+        .input-field.with-icon {
+          padding-left: var(--space-10);
+        }
+        
+        .input-field:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-          background-color: white;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 3px var(--color-primary-light);
+          background-color: var(--color-bg-card);
         }
         
         .error-message {
-          color: #e53e3e;
-          background-color: #fff5f5;
-          padding: 0.75rem;
-          border-radius: 8px;
-          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          color: var(--color-error);
+          background-color: var(--color-error-bg);
+          padding: var(--space-3);
+          border-radius: var(--radius-md);
+          font-size: 0.875rem;
+          border: 1px solid rgba(239, 68, 68, 0.2);
         }
         
-        .login-button {
-          background-color: #4a90e2;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 0.85rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .login-button:hover {
-          background-color: #3a7bc8;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .login-button:disabled {
-          background-color: #a0aec0;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
+        .error-icon {
+          flex-shrink: 0;
         }
         
         /* Autocomplete styles */
@@ -441,38 +461,49 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           right: 0;
           max-height: 200px;
           overflow-y: auto;
-          background-color: white;
-          border: 1px solid #ddd;
+          background-color: var(--color-bg-card);
+          border: 1px solid var(--color-border);
           border-top: none;
-          border-radius: 0 0 8px 8px;
+          border-radius: 0 0 var(--radius-md) var(--radius-md);
           z-index: 10;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          box-shadow: var(--shadow-lg);
+          margin-top: 4px;
         }
         
         .suggestion-item {
-          padding: 0.75rem;
+          padding: var(--space-3) var(--space-4);
           cursor: pointer;
           transition: background-color 0.2s;
+          font-size: 0.95rem;
+          color: var(--color-text-main);
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+        }
+        
+        .suggestion-icon {
+          color: var(--color-text-tertiary);
         }
         
         .suggestion-item:hover {
-          background-color: #f7fafc;
+          background-color: var(--color-bg-surface);
+          color: var(--color-primary);
+        }
+        
+        .suggestion-item:hover .suggestion-icon {
+          color: var(--color-primary);
         }
         
         .loading-indicator {
           position: absolute;
-          right: 10px;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
         }
         
         .spinner {
-          width: 16px;
-          height: 16px;
-          border: 2px solid rgba(0, 0, 0, 0.1);
-          border-top-color: #4a90e2;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
+          animation: spin 1s linear infinite;
+          color: var(--color-primary);
         }
         
         @keyframes spin {
@@ -481,39 +512,68 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           }
         }
         
-        .full-width-input {
-          width: 100%;
-        }
-        
         .request-link {
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px solid #eee;
+          margin-top: var(--space-4);
+          padding-top: var(--space-4);
+          border-top: 1px solid var(--color-border);
         }
         
         .request-link p {
-          margin: 0 0 0.5rem 0;
-          color: #666;
-          font-size: 0.95rem;
+          margin: 0 0 var(--space-2) 0;
+          color: var(--color-text-secondary);
+          font-size: 0.875rem;
         }
         
         .request-link a {
-          color: #4a90e2;
+          color: var(--color-primary);
           text-decoration: none;
-          font-weight: 500;
+          font-weight: 600;
+          font-size: 0.875rem;
           transition: color 0.2s;
         }
         
         .request-link a:hover {
-          color: #3a7bc8;
+          color: var(--color-primary-hover);
           text-decoration: underline;
         }
+        
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.75rem 1.5rem;
+          border-radius: var(--radius-lg);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+          font-size: 1rem;
+        }
+        
+        .btn-primary {
+          background-color: var(--color-primary);
+          color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+          background-color: var(--color-primary-hover);
+          transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        
+        .w-full { width: 100%; }
+        .mr-2 { margin-right: var(--space-2); }
+        .animate-spin { animation: spin 1s linear infinite; }
       `}</style>
     </div>
   );
 };
 
-export default LoginForm; 
+export default LoginForm;

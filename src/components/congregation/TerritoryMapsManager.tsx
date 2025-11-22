@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabase/config';
 import MapSetupForm from './MapSetupForm';
 import TerritoryMapCard from './TerritoryMapCard';
+import { Plus, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface TerritoryMap {
   id: string;
@@ -10,6 +11,7 @@ interface TerritoryMap {
   image_url?: string;
   status: string;
   congregation_id: string;
+  blocks?: number;
 }
 
 interface TerritoryMapsManagerProps {
@@ -23,6 +25,8 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
   const [error, setError] = useState('');
   const [setupComplete, setSetupComplete] = useState(false);
   const [addingMap, setAddingMap] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newMapBlocks, setNewMapBlocks] = useState<number | string>(10);
 
   useEffect(() => {
     if (congregationId) {
@@ -61,7 +65,7 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
       console.error('Error fetching territory maps:', err);
       const errorMessage = 'Failed to load territory maps. Please try again later.';
       setError(errorMessage);
-      
+
       // Call the onError prop if provided
       if (onError) {
         onError(errorMessage);
@@ -79,51 +83,57 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
     fetchMaps();
   };
 
-  const handleAddMap = async () => {
+  const handleAddMap = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
     setAddingMap(true);
     setError('');
-    
+
     try {
       // Get the current map count to determine the next map number
       const nextMapNumber = maps.length + 1;
-      
+      const blocksToSave = typeof newMapBlocks === 'string' ? (parseInt(newMapBlocks) || 10) : newMapBlocks;
+
       // Create a new map
       const newMap = {
         congregation_id: congregationId,
         name: `Territory Map ${nextMapNumber}`,
         description: 'Do Not Call addresses',
         status: 'active',
+        blocks: blocksToSave,
         created_at: new Date().toISOString()
       };
-      
+
       const { data, error: insertError } = await supabase
         .from('territory_maps')
         .insert(newMap)
         .select();
-      
+
       if (insertError) {
         throw insertError;
       }
-      
+
       console.log('New map created:', data);
-      
+
       // Update the congregation's map count
       const { error: updateError } = await supabase
         .from('congregations')
         .update({ map_count: nextMapNumber })
         .eq('id', congregationId);
-      
+
       if (updateError) {
         console.warn('Failed to update congregation map count:', updateError);
         // Continue anyway since the map was created
       }
-      
-      // Refresh the maps list
+
+      // Reset form and refresh
+      setShowAddForm(false);
+      setNewMapBlocks(10);
       fetchMaps();
     } catch (err: any) {
       console.error('Error adding new map:', err);
       setError('Failed to add new map. Please try again.');
-      
+
       // Call the onError prop if provided
       if (onError) {
         onError('Failed to add new map. Please try again.');
@@ -136,7 +146,28 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
   if (loading && maps.length === 0) {
     return (
       <div className="loading-container">
+        <div className="spinner"></div>
         <p>Loading territory maps...</p>
+        <style jsx>{`
+          .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: var(--color-text-secondary);
+          }
+          .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(37, 99, 235, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--color-primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: var(--space-3);
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
@@ -144,13 +175,38 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
   if (error && !onError) {
     return (
       <div className="error-container">
+        <AlertCircle size={32} className="error-icon" />
         <p className="error-message">{error}</p>
-        <button 
-          className="retry-button"
+        <button
+          className="btn btn-primary"
           onClick={fetchMaps}
         >
+          <RefreshCw size={16} className="mr-2" />
           Try Again
         </button>
+        <style jsx>{`
+          .error-container {
+            background-color: var(--color-error-bg);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            margin-bottom: var(--space-6);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .error-icon {
+            color: var(--color-error);
+            margin-bottom: var(--space-4);
+          }
+          .error-message {
+            color: var(--color-error);
+            margin-bottom: var(--space-6);
+            font-weight: 500;
+          }
+          .mr-2 { margin-right: var(--space-2); }
+        `}</style>
       </div>
     );
   }
@@ -162,17 +218,21 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
   return (
     <div className="territory-maps-manager">
       <div className="header">
-        <h2>Territory Maps</h2>
-        <p className="map-count">
+        <h2 className="section-title">Territory Maps</h2>
+        <span className="map-count-badge">
           {maps.length} {maps.length === 1 ? 'map' : 'maps'} available
-        </p>
+        </span>
       </div>
 
       {maps.length === 0 ? (
-        <div className="no-maps">
-          <p>No territory maps have been added yet.</p>
-          <button 
-            className="setup-button"
+        <div className="empty-state">
+          <div className="empty-icon-wrapper">
+            <AlertCircle size={32} />
+          </div>
+          <h3 className="empty-title">No Maps Yet</h3>
+          <p className="empty-description">No territory maps have been added yet.</p>
+          <button
+            className="btn btn-primary"
             onClick={() => setSetupComplete(false)}
           >
             Set Up Territory Maps
@@ -181,168 +241,273 @@ const TerritoryMapsManager: React.FC<TerritoryMapsManagerProps> = ({ congregatio
       ) : (
         <div className="maps-grid">
           {maps.map((map) => (
-            <TerritoryMapCard 
-              key={map.id} 
-              map={map} 
-              onUpdate={handleMapUpdate} 
+            <TerritoryMapCard
+              key={map.id}
+              map={map}
+              onUpdate={handleMapUpdate}
             />
           ))}
-          
-          {/* Add Map Button */}
-          <div className="add-map-card">
-            <button 
-              className="add-map-button"
-              onClick={handleAddMap}
-              disabled={addingMap}
+
+          {/* Add Map Card / Form */}
+          {showAddForm ? (
+            <div className="add-map-form-card">
+              <h3>Add New Map</h3>
+              <form onSubmit={handleAddMap}>
+                <div className="form-group">
+                  <label htmlFor="new-map-blocks">Number of Blocks</label>
+                  <input
+                    id="new-map-blocks"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={newMapBlocks}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setNewMapBlocks('');
+                      } else {
+                        setNewMapBlocks(parseInt(val));
+                      }
+                    }}
+                    className="blocks-input"
+                    autoFocus
+                  />
+                </div>
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="cancel-btn"
+                    onClick={() => setShowAddForm(false)}
+                    disabled={addingMap}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="create-btn"
+                    disabled={addingMap}
+                  >
+                    {addingMap ? 'Creating...' : 'Create Map'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <button
+              className="add-map-card"
+              onClick={() => setShowAddForm(true)}
               aria-label="Add new territory map"
             >
-              {addingMap ? '...' : '+'}
+              <div className="add-icon-wrapper">
+                <Plus size={32} />
+              </div>
+              <span className="add-map-text">Add New Map</span>
             </button>
-            <p className="add-map-text">Add Map</p>
-          </div>
+          )}
         </div>
       )}
 
       <style jsx>{`
         .territory-maps-manager {
-          padding: 1.5rem;
+          width: 100%;
         }
 
         .header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 2rem;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 1rem;
+          margin-bottom: var(--space-6);
+          border-bottom: 1px solid var(--color-border);
+          padding-bottom: var(--space-4);
         }
 
-        h2 {
+        .section-title {
           font-size: 1.5rem;
-          font-weight: 600;
-          color: #1e293b;
+          font-weight: 700;
+          color: var(--color-text-main);
           margin: 0;
+          letter-spacing: -0.025em;
         }
 
-        .map-count {
-          color: #64748b;
+        .map-count-badge {
+          background-color: var(--color-primary-light);
+          color: var(--color-primary);
           font-size: 0.875rem;
+          font-weight: 600;
+          padding: var(--space-1) var(--space-3);
+          border-radius: 9999px;
         }
 
         .maps-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
+          gap: var(--space-6);
         }
 
-        .loading-container {
+        .empty-state {
+          background-color: var(--color-bg-body);
+          border-radius: var(--radius-lg);
+          padding: var(--space-12);
+          text-align: center;
+          color: var(--color-text-secondary);
+          border: 1px dashed var(--color-border);
           display: flex;
-          justify-content: center;
+          flex-direction: column;
           align-items: center;
-          min-height: 200px;
-          color: #64748b;
         }
-
-        .error-container {
-          background-color: #fee2e2;
-          border-radius: 0.5rem;
-          padding: 1.5rem;
-          margin-bottom: 1.5rem;
-          text-align: center;
+        
+        .empty-icon-wrapper {
+          width: 64px;
+          height: 64px;
+          background-color: var(--color-bg-input);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: var(--space-4);
+          color: var(--color-text-tertiary);
         }
-
-        .error-message {
-          color: #b91c1c;
-          margin-bottom: 1rem;
+        
+        .empty-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--color-text-main);
+          margin: 0 0 var(--space-2) 0;
         }
-
-        .retry-button {
-          background-color: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.75rem 1.5rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .retry-button:hover {
-          background-color: #dc2626;
-        }
-
-        .no-maps {
-          background-color: #f8fafc;
-          border-radius: 0.5rem;
-          padding: 3rem;
-          text-align: center;
-          color: #64748b;
-        }
-
-        .setup-button {
-          background-color: #2563eb;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.75rem 1.5rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
-          margin-top: 1rem;
-        }
-
-        .setup-button:hover {
-          background-color: #1d4ed8;
+        
+        .empty-description {
+          margin: 0 0 var(--space-6) 0;
+          color: var(--color-text-secondary);
         }
 
         .add-map-card {
-          background-color: #f8fafc;
-          border: 2px dashed #cbd5e1;
-          border-radius: 0.5rem;
+          background-color: var(--color-bg-body);
+          border: 2px dashed var(--color-border);
+          border-radius: var(--radius-lg);
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 2rem;
-          min-height: 200px;
-          transition: background-color 0.2s;
-        }
-
-        .add-map-card:hover {
-          background-color: #f1f5f9;
-        }
-
-        .add-map-button {
-          background-color: #2563eb;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 60px;
-          height: 60px;
-          font-size: 2rem;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          padding: var(--space-8);
+          min-height: 280px;
+          transition: all 0.2s ease;
           cursor: pointer;
-          transition: background-color 0.2s;
-          margin-bottom: 1rem;
+          width: 100%;
         }
 
-        .add-map-button:hover {
-          background-color: #1d4ed8;
+        .add-map-card:hover:not(:disabled) {
+          border-color: var(--color-primary);
+          background-color: var(--color-primary-light);
         }
-
-        .add-map-button:disabled {
-          background-color: #93c5fd;
+        
+        .add-map-card:disabled {
+          opacity: 0.7;
           cursor: not-allowed;
         }
 
+        .add-icon-wrapper {
+          background-color: var(--color-bg-card);
+          color: var(--color-primary);
+          border-radius: 50%;
+          width: 64px;
+          height: 64px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: var(--space-4);
+          box-shadow: var(--shadow-sm);
+          transition: transform 0.2s ease;
+        }
+        
+        .add-map-card:hover:not(:disabled) .add-icon-wrapper {
+          transform: scale(1.1);
+          background-color: var(--color-primary);
+          color: white;
+        }
+
         .add-map-text {
-          color: #64748b;
-          font-size: 1rem;
+          color: var(--color-text-main);
+          font-size: 1.125rem;
+          font-weight: 600;
+        }
+        
+        .spinner-sm {
+          width: 24px;
+          height: 24px;
+          border: 2px solid rgba(37, 99, 235, 0.1);
+          border-radius: 50%;
+          border-top-color: var(--color-primary);
+          animation: spin 1s linear infinite;
+        }
+
+        .add-map-form-card {
+          background-color: white;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          padding: var(--space-6);
+          min-height: 280px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .add-map-form-card h3 {
+          margin-top: 0;
+          margin-bottom: var(--space-4);
+          text-align: center;
+          color: var(--color-text-main);
+        }
+
+        .form-group {
+          margin-bottom: var(--space-4);
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: var(--space-2);
           font-weight: 500;
+          color: var(--color-text-secondary);
+        }
+
+        .blocks-input {
+          width: 100%;
+          padding: var(--space-3);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          font-size: 1rem;
+          text-align: center;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: var(--space-3);
+          margin-top: var(--space-4);
+        }
+
+        .cancel-btn, .create-btn {
+          flex: 1;
+          padding: var(--space-2) var(--space-4);
+          border-radius: var(--radius-md);
+          font-weight: 500;
+          cursor: pointer;
+          border: none;
+          font-size: 0.9rem;
+        }
+
+        .cancel-btn {
+          background-color: var(--color-bg-input);
+          color: var(--color-text-secondary);
+        }
+
+        .create-btn {
+          background-color: var(--color-primary);
+          color: white;
+        }
+
+        .create-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         @media (max-width: 640px) {

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { supabase } from '../../supabase/config';
+import { ArrowLeft, MapPin, Hash, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 
 const JoinSessionPage: React.FC = () => {
   const router = useRouter();
@@ -19,27 +20,27 @@ const JoinSessionPage: React.FC = () => {
   const fetchActiveSessions = async () => {
     try {
       setLoadingSessions(true);
-      
+
       // Get user's congregation from localStorage or session
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         setLoadingSessions(false);
         return;
       }
-      
+
       // Get user's congregation from user_roles table
       const { data: userRoleData } = await supabase
         .from('user_roles')
         .select('congregation_id')
         .eq('user_id', session.user.id)
         .single();
-      
+
       if (!userRoleData || !userRoleData.congregation_id) {
         setLoadingSessions(false);
         return;
       }
-      
+
       // Get active sessions for this congregation
       const { data: sessions, error: sessionsError } = await supabase
         .from('sessions')
@@ -47,7 +48,7 @@ const JoinSessionPage: React.FC = () => {
         .eq('congregation_id', userRoleData.congregation_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
-      
+
       if (sessionsError) {
         console.error('Error fetching active sessions:', sessionsError);
       } else if (sessions) {
@@ -62,44 +63,44 @@ const JoinSessionPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!sessionCode.trim()) {
       setError('Please enter a session code');
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get the current user session
       const { data: { session: userSession } } = await supabase.auth.getSession();
-      
+
       if (!userSession) {
         setError('You must be logged in to join a session.');
         setLoading(false);
         return;
       }
-      
+
       // Find the session by code
       const { data, error: sessionError } = await supabase
         .from('sessions')
         .select('id, is_active')
         .eq('code', sessionCode)
         .single();
-      
+
       if (sessionError || !data) {
         setError('Invalid session code. Please check and try again.');
         setLoading(false);
         return;
       }
-      
+
       if (!data.is_active) {
         setError('This session is no longer active.');
         setLoading(false);
         return;
       }
-      
+
       // Record the participant joining
       const { error: participantError } = await supabase
         .from('session_participants')
@@ -108,14 +109,14 @@ const JoinSessionPage: React.FC = () => {
           user_id: userSession.user.id,
           joined_at: new Date().toISOString()
         });
-      
+
       if (participantError) {
         console.error('Error recording participant:', participantError);
         setError('Failed to join session. Please try again.');
         setLoading(false);
         return;
       }
-      
+
       // Redirect to the session page
       router.push(`/session/${data.id}`);
     } catch (err) {
@@ -128,17 +129,17 @@ const JoinSessionPage: React.FC = () => {
   const handleJoinSession = async (sessionId: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get the current user session
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         setError('You must be logged in to join a session.');
         setLoading(false);
         return;
       }
-      
+
       // Record the participant joining
       const { error: participantError } = await supabase
         .from('session_participants')
@@ -147,14 +148,14 @@ const JoinSessionPage: React.FC = () => {
           user_id: session.user.id,
           joined_at: new Date().toISOString()
         });
-      
+
       if (participantError) {
         console.error('Error recording participant:', participantError);
         setError('Failed to join session. Please try again.');
         setLoading(false);
         return;
       }
-      
+
       // Redirect to the session page
       router.push(`/session/${sessionId}`);
     } catch (err) {
@@ -165,17 +166,17 @@ const JoinSessionPage: React.FC = () => {
   };
 
   return (
-    <div className="container">
+    <div className="page-wrapper">
       <Head>
         <title>Join Session | Not At Home</title>
         <meta name="description" content="Join an active outreach session" />
       </Head>
 
-      <main>
+      <main className="main-content">
         <div className="content-container">
           <div className="header">
             <Link href="/" className="back-link">
-              &larr; Home
+              <ArrowLeft size={16} className="mr-1" /> Home
             </Link>
             <h1 className="title">Join a Session</h1>
             <p className="description">
@@ -183,50 +184,76 @@ const JoinSessionPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="form-container">
+          <div className="card form-card">
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="session-code">Session Code</label>
-                <input
-                  type="text"
-                  id="session-code"
-                  value={sessionCode}
-                  onChange={(e) => setSessionCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="Enter 4-digit code"
-                  maxLength={4}
-                  autoComplete="off"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  required
-                />
+                <label htmlFor="session-code" className="input-label">Session Code</label>
+                <div className="input-wrapper">
+                  <Hash className="input-icon" size={20} />
+                  <input
+                    type="text"
+                    id="session-code"
+                    value={sessionCode}
+                    onChange={(e) => setSessionCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="Enter 4-digit code"
+                    maxLength={4}
+                    autoComplete="off"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="input-field with-icon"
+                    required
+                  />
+                </div>
               </div>
-              
-              {error && <div className="error-message">{error}</div>}
-              
-              <button 
-                type="submit" 
-                className="submit-button"
+
+              {error && (
+                <div className="error-alert">
+                  <AlertCircle size={18} className="mr-2" />
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary w-full"
                 disabled={loading || !sessionCode.trim()}
               >
-                {loading ? 'Joining...' : 'Join Session'}
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin mr-2" />
+                    Joining...
+                  </>
+                ) : (
+                  <>
+                    Join Session
+                    <ArrowRight size={18} className="ml-2" />
+                  </>
+                )}
               </button>
             </form>
           </div>
 
           {activeSessions.length > 0 && (
-            <div className="active-sessions-container">
+            <div className="card sessions-card">
               <h2 className="section-title">Current Open Sessions</h2>
               <div className="sessions-list">
                 {activeSessions.map((session) => (
-                  <div key={session.id} className="session-card">
+                  <div key={session.id} className="session-item">
                     <div className="session-info">
-                      <div className="session-code">Code: <strong>{session.code}</strong></div>
+                      <div className="session-code">
+                        <span className="label">Code:</span>
+                        <span className="value">{session.code}</span>
+                      </div>
                       {session.map_number && (
-                        <div className="session-map">Map: <strong>{session.map_number}</strong></div>
+                        <div className="session-map">
+                          <MapPin size={14} className="mr-1 text-tertiary" />
+                          <span className="label">Map:</span>
+                          <span className="value">{session.map_number}</span>
+                        </div>
                       )}
                     </div>
-                    <button 
-                      className="join-button"
+                    <button
+                      className="btn btn-sm btn-success"
                       onClick={() => handleJoinSession(session.id)}
                       disabled={loading}
                     >
@@ -241,21 +268,20 @@ const JoinSessionPage: React.FC = () => {
       </main>
 
       <style jsx>{`
-        .container {
+        .page-wrapper {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background-color: #f9fafb;
-          color: #111827;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background-color: var(--color-bg-body);
+          color: var(--color-text-main);
         }
 
-        main {
+        .main-content {
           flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 1.5rem;
+          padding: var(--space-6);
           width: 100%;
         }
 
@@ -267,168 +293,189 @@ const JoinSessionPage: React.FC = () => {
         .header {
           display: flex;
           flex-direction: column;
-          margin-bottom: 1.5rem;
+          margin-bottom: var(--space-8);
         }
 
         .back-link {
-          color: #2563eb;
+          display: inline-flex;
+          align-items: center;
+          color: var(--color-primary);
           text-decoration: none;
           font-size: 0.875rem;
-          margin-bottom: 0.5rem;
+          font-weight: 500;
+          margin-bottom: var(--space-4);
+          transition: color 0.2s;
         }
 
         .back-link:hover {
+          color: var(--color-primary-hover);
           text-decoration: underline;
         }
 
         .title {
-          margin: 0;
-          font-size: 1.875rem;
-          font-weight: 700;
-          color: #111827;
+          margin: 0 0 var(--space-2) 0;
+          font-size: 2rem;
+          font-weight: 800;
+          color: var(--color-text-main);
+          letter-spacing: -0.025em;
         }
 
         .description {
-          margin-top: 0.5rem;
-          color: #4b5563;
-          font-size: 1rem;
+          margin: 0;
+          color: var(--color-text-secondary);
+          font-size: 1.125rem;
+          line-height: 1.5;
         }
 
-        .form-container {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          padding: 1.5rem;
-          margin-bottom: 1.5rem;
+        .card {
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-md);
+          border: 1px solid var(--color-border);
+          overflow: hidden;
+        }
+
+        .form-card {
+          padding: var(--space-6);
+          margin-bottom: var(--space-6);
         }
 
         .form-group {
-          margin-bottom: 1.25rem;
+          margin-bottom: var(--space-6);
         }
 
-        label {
+        .input-label {
           display: block;
-          margin-bottom: 0.5rem;
+          margin-bottom: var(--space-2);
           font-size: 0.875rem;
-          font-weight: 500;
-          color: #111827;
+          font-weight: 600;
+          color: var(--color-text-main);
         }
 
-        input {
+        .input-wrapper {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: var(--space-3);
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--color-text-tertiary);
+          pointer-events: none;
+        }
+
+        .input-field {
           width: 100%;
-          padding: 0.75rem 1rem;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
+          padding: var(--space-3);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 1rem;
-          background-color: white;
-          color: #111827;
-          transition: border-color 0.15s ease;
+          background-color: var(--color-bg-input);
+          color: var(--color-text-main);
+          transition: all 0.2s ease;
         }
 
-        input:focus {
+        .input-field.with-icon {
+          padding-left: var(--space-10);
+        }
+
+        .input-field:focus {
           outline: none;
-          border-color: #2563eb;
-          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 4px var(--color-primary-light);
+          background-color: var(--color-bg-card);
         }
 
-        .error-message {
-          margin-bottom: 1rem;
-          padding: 0.75rem;
-          background-color: rgba(239, 68, 68, 0.1);
-          border-radius: 6px;
+        .error-alert {
+          display: flex;
+          align-items: center;
+          margin-bottom: var(--space-4);
+          padding: var(--space-3);
+          background-color: var(--color-error-bg);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: var(--radius-md);
           font-size: 0.875rem;
-          color: #ef4444;
+          color: var(--color-error);
         }
 
-        .submit-button {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          background-color: #2563eb;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.15s ease;
-        }
-
-        .submit-button:hover:not(:disabled) {
-          background-color: #1d4ed8;
-        }
-
-        .submit-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .active-sessions-container {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          padding: 1.5rem;
-          margin-bottom: 1.5rem;
+        .sessions-card {
+          padding: var(--space-6);
         }
 
         .section-title {
-          margin-top: 0;
-          margin-bottom: 1rem;
+          margin: 0 0 var(--space-4) 0;
           font-size: 1.25rem;
-          font-weight: 600;
-          color: #111827;
+          font-weight: 700;
+          color: var(--color-text-main);
         }
 
         .sessions-list {
           display: flex;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: var(--space-3);
         }
 
-        .session-card {
+        .session-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 0.75rem;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          background-color: #f9fafb;
+          padding: var(--space-4);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          background-color: var(--color-bg-body);
+          transition: all 0.2s ease;
+        }
+        
+        .session-item:hover {
+          border-color: var(--color-primary);
+          box-shadow: var(--shadow-sm);
         }
 
         .session-info {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: var(--space-1);
         }
 
         .session-code, .session-map {
+          display: flex;
+          align-items: center;
           font-size: 0.875rem;
-          color: #4b5563;
+        }
+        
+        .session-code .value {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--color-text-main);
         }
 
-        .session-code strong, .session-map strong {
-          color: #111827;
+        .label {
+          color: var(--color-text-secondary);
+          margin-right: var(--space-2);
+        }
+        
+        .value {
           font-weight: 600;
+          color: var(--color-text-main);
+        }
+        
+        .text-tertiary {
+          color: var(--color-text-tertiary);
         }
 
-        .join-button {
-          padding: 0.5rem 1rem;
-          background-color: #10b981;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.15s ease;
+        .mr-1 { margin-right: var(--space-1); }
+        .mr-2 { margin-right: var(--space-2); }
+        .ml-2 { margin-left: var(--space-2); }
+        .w-full { width: 100%; }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
-
-        .join-button:hover:not(:disabled) {
-          background-color: #059669;
-        }
-
-        .join-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

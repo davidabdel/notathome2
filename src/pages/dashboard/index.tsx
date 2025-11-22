@@ -7,6 +7,22 @@ import { createSession, endSession, generateSessionCode } from '../../utils/sess
 import EnhancedMapSelectionModal from '../../components/EnhancedMapSelectionModal';
 import ShareSessionModal from '../../components/ShareSessionModal';
 import ShareSessionDataModal from '../../components/ShareSessionDataModal';
+import {
+  LogOut,
+  Plus,
+  Play,
+  MapPin,
+  Clock,
+  Share2,
+  AlertTriangle,
+  RefreshCw,
+  Shield,
+  Database,
+  Loader2,
+  ArrowRight,
+  Users,
+  Hash
+} from 'lucide-react';
 
 export default function GroupOverseerDashboard() {
   const router = useRouter();
@@ -36,18 +52,18 @@ export default function GroupOverseerDashboard() {
     const checkAuth = async () => {
       try {
         setLoading(true);
-        
+
         // Check if user is logged in
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
           // Redirect to login if not logged in
           router.push('/');
           return;
         }
-        
+
         setUserId(session.user.id);
-        
+
         // Check if user has selected the Group Overseer role
         const selectedRole = localStorage.getItem('userRole');
         if (selectedRole !== 'group_overseer') {
@@ -55,28 +71,28 @@ export default function GroupOverseerDashboard() {
           router.push('/role-selection');
           return;
         }
-        
+
         // Get user's congregation from user_roles table
         const { data: userRoleData } = await supabase
           .from('user_roles')
           .select('congregation_id')
           .eq('user_id', session.user.id)
           .single();
-        
+
         if (userRoleData && userRoleData.congregation_id) {
           setCongregationId(userRoleData.congregation_id);
-          
+
           // Get congregation name
           const { data: congregation } = await supabase
             .from('congregations')
             .select('name')
             .eq('id', userRoleData.congregation_id)
             .single();
-          
+
           if (congregation) {
             setCongregationName(congregation.name);
           }
-          
+
           // Check for active sessions created by this user
           try {
             const { data: sessions, error } = await supabase
@@ -86,7 +102,7 @@ export default function GroupOverseerDashboard() {
               .eq('is_active', true)
               .eq('created_by', session.user.id)
               .order('created_at', { ascending: false });
-            
+
             if (!error && sessions && sessions.length > 0) {
               setActiveSessions(sessions);
               // Select the most recent session by default
@@ -100,7 +116,7 @@ export default function GroupOverseerDashboard() {
             console.error('Error checking for active sessions:', err);
             // Don't set an error message here, as the sessions table might not exist yet
           }
-          
+
           // Get all open sessions for this congregation (not just created by this user)
           try {
             console.log('Fetching all open sessions for congregation:', userRoleData.congregation_id);
@@ -110,7 +126,7 @@ export default function GroupOverseerDashboard() {
               .eq('congregation_id', userRoleData.congregation_id)
               .eq('is_active', true)
               .order('created_at', { ascending: false });
-            
+
             if (allSessionsError) {
               console.error('Error fetching all open sessions:', allSessionsError);
             } else if (allSessions) {
@@ -128,26 +144,26 @@ export default function GroupOverseerDashboard() {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, [router]);
-  
+
   const handleStartSession = async () => {
     if (!congregationId) {
       setError('No congregation found for this user');
       return;
     }
-    
+
     try {
       setError('');
-      
+
       // Check if the sessions table exists
       try {
         const { error: tableCheckError } = await supabase
           .from('sessions')
           .select('id')
           .limit(1);
-        
+
         if (tableCheckError && tableCheckError.code === '42P01') {
           // Table doesn't exist
           setError('Sessions table does not exist. Please set up the database first.');
@@ -156,7 +172,7 @@ export default function GroupOverseerDashboard() {
       } catch (tableErr) {
         console.error('Error checking sessions table:', tableErr);
       }
-      
+
       // Open the map selection modal
       setIsMapModalOpen(true);
     } catch (err) {
@@ -164,49 +180,49 @@ export default function GroupOverseerDashboard() {
       setError('Error preparing to create session. Please try again.');
     }
   };
-  
+
   const handleCreateSessionWithMap = async (mapNumber: number) => {
     try {
       setCreatingSession(true);
       setIsMapModalOpen(false);
       setError('');
-      
+
       console.log('Starting session creation with map number:', mapNumber);
       console.log('Congregation ID:', congregationId);
       console.log('User ID:', userId);
-      
+
       // Validate inputs before calling createSession
       if (!congregationId) {
         setError('No congregation found for this user. Please refresh and try again.');
         setCreatingSession(false);
         return;
       }
-      
+
       if (!userId) {
         setError('User ID not found. Please refresh and try again.');
         setCreatingSession(false);
         return;
       }
-      
+
       // Check if the sessions table exists
       try {
         const { error: tableCheckError } = await supabase
           .from('sessions')
           .select('id')
           .limit(1);
-        
+
         if (tableCheckError && tableCheckError.code === '42P01') {
           // Table doesn't exist
           setError('Sessions table does not exist. Please set up the database first.');
           setCreatingSession(false);
           return;
         }
-        
+
         console.log('Sessions table exists, proceeding with session creation');
       } catch (tableErr) {
         console.error('Error checking sessions table:', tableErr);
       }
-      
+
       // Check if the user has the correct role for this congregation
       try {
         console.log('Checking user role for congregation...');
@@ -216,33 +232,33 @@ export default function GroupOverseerDashboard() {
           .eq('user_id', userId)
           .eq('congregation_id', congregationId)
           .single();
-        
+
         if (roleError) {
           console.error('Error checking user role:', roleError);
           setError(`Failed to verify user role: ${roleError.message}`);
           setCreatingSession(false);
           return;
         }
-        
+
         if (!userRole) {
           console.error('No user role found for this congregation');
           setError('You do not have permission to create sessions for this congregation');
           setCreatingSession(false);
           return;
         }
-        
+
         console.log('User role verified:', userRole);
       } catch (roleErr) {
         console.error('Exception checking user role:', roleErr);
       }
-      
+
       // Try to directly insert a session using supabase to see the exact error
       try {
         console.log('Attempting direct session insert...');
         const sessionCode = generateSessionCode();
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 24);
-        
+
         const sessionData = {
           code: sessionCode,
           congregation_id: congregationId,
@@ -251,22 +267,22 @@ export default function GroupOverseerDashboard() {
           is_active: true,
           map_number: mapNumber
         };
-        
+
         console.log('Session data:', sessionData);
-        
+
         const { data: directData, error: directError } = await supabase
           .from('sessions')
           .insert(sessionData)
           .select()
           .single();
-        
+
         if (directError) {
           console.error('Direct insert error:', directError);
           setError(`Failed to create session: ${directError.message}`);
           setCreatingSession(false);
           return;
         }
-        
+
         console.log('Direct insert successful:', directData);
         // Add the new session to the list of active sessions
         setActiveSessions(prev => [directData, ...prev]);
@@ -277,11 +293,11 @@ export default function GroupOverseerDashboard() {
       } catch (directErr) {
         console.error('Exception in direct insert:', directErr);
       }
-      
+
       // If direct insert fails, try the original method
       console.log('Falling back to createSession utility...');
       const newSession = await createSession(congregationId, userId, mapNumber);
-      
+
       if (newSession) {
         console.log('Session created successfully:', newSession);
         // Add the new session to the list of active sessions
@@ -299,66 +315,66 @@ export default function GroupOverseerDashboard() {
       setCreatingSession(false);
     }
   };
-  
+
   const handleEndSession = async () => {
     if (!selectedSession) {
       setError('No active session to end');
       return;
     }
-    
+
     try {
       // Store session ID for sharing
       const sessionIdToShare = selectedSession.id;
-      
+
       // Show the share data modal first
       setSessionToShareData(sessionIdToShare);
       setIsShareDataModalOpen(true);
-      
+
       // Don't delete the session here - it will be deleted after sharing in the ShareSessionDataModal
     } catch (err) {
       console.error('Error preparing to end session:', err);
       setError('Error preparing to end session');
     }
   };
-  
+
   const handleSessionCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow numeric input
     const numericValue = e.target.value.replace(/[^0-9]/g, '');
     setSessionCode(numericValue);
   };
-  
+
   const handleEnterSession = async () => {
     if (!sessionCode.trim()) {
       setError('Please enter a session code');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       // Find the session by code
       const { data, error: sessionError } = await supabase
         .from('sessions')
         .select('*')
         .eq('code', sessionCode.toUpperCase())
         .single();
-      
+
       if (sessionError || !data) {
         setError('Invalid session code. Please check and try again.');
         setLoading(false);
         return;
       }
-      
+
       if (!data.is_active) {
         setError('This session is no longer active.');
         setLoading(false);
         return;
       }
-      
+
       // Set as active session
       setSelectedSession(data);
-      
+
       // Redirect to the session page
       router.push(`/session/${data.id}`);
     } catch (err) {
@@ -367,37 +383,37 @@ export default function GroupOverseerDashboard() {
       setLoading(false);
     }
   };
-  
+
   const handleChangeRole = () => {
     // Change role to publisher
     localStorage.setItem('userRole', 'publisher');
     router.push('/role-selection');
   };
-  
+
   const createSessionsTable = async () => {
     try {
       setCreatingTable(true);
       setError('');
-      
+
       console.log('Attempting to create/fix sessions table...');
-      
+
       const response = await fetch('/api/create-sessions-table', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      
+
       const data = await response.json();
       console.log('Create sessions table response:', data);
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create sessions table');
       }
-      
+
       setTableCreated(true);
       setError('');
-      
+
       // Check if the sessions table exists and has the map_number column
       try {
         console.log('Verifying sessions table structure...');
@@ -405,7 +421,7 @@ export default function GroupOverseerDashboard() {
           .from('sessions')
           .select('map_number')
           .limit(1);
-        
+
         if (tableCheckError) {
           console.error('Error verifying sessions table:', tableCheckError);
           if (tableCheckError.message.includes('column "map_number" does not exist')) {
@@ -414,12 +430,12 @@ export default function GroupOverseerDashboard() {
             return;
           }
         }
-        
+
         console.log('Sessions table structure verified successfully');
       } catch (verifyErr) {
         console.error('Error verifying sessions table:', verifyErr);
       }
-      
+
       // Reload the page after a short delay
       console.log('Reloading page in 1.5 seconds...');
       setTimeout(() => {
@@ -433,31 +449,31 @@ export default function GroupOverseerDashboard() {
       setCreatingTable(false);
     }
   };
-  
+
   const checkAndFixRlsPolicies = async () => {
     try {
       setCreatingTable(true);
       setError('');
-      
+
       console.log('Checking and fixing RLS policies...');
-      
+
       const response = await fetch('/api/check-rls-policies', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      
+
       const data = await response.json();
       console.log('Check RLS policies response:', data);
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to check RLS policies');
       }
-      
+
       setTableCreated(true);
       setError('');
-      
+
       // Reload the page after a short delay
       console.log('Reloading page in 1.5 seconds...');
       setTimeout(() => {
@@ -471,31 +487,31 @@ export default function GroupOverseerDashboard() {
       setCreatingTable(false);
     }
   };
-  
+
   const refreshSchemaCache = async () => {
     try {
       setCreatingTable(true);
       setError('');
-      
+
       console.log('Refreshing schema cache...');
-      
+
       const response = await fetch('/api/refresh-schema', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      
+
       const data = await response.json();
       console.log('Refresh schema response:', data);
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to refresh schema cache');
       }
-      
+
       setTableCreated(true);
       setError('');
-      
+
       // Reload the page after a short delay
       console.log('Reloading page in 1.5 seconds...');
       setTimeout(() => {
@@ -509,30 +525,30 @@ export default function GroupOverseerDashboard() {
       setCreatingTable(false);
     }
   };
-  
+
   const createAddressesTable = async () => {
     try {
       setCreatingAddressesTable(true);
       setAddressesTableError(null);
-      
+
       console.log('Attempting to create addresses table...');
-      
+
       const response = await fetch('/api/create-addresses-table', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      
+
       const data = await response.json();
       console.log('Create addresses table response:', data);
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create addresses table');
       }
-      
+
       setAddressesTableCreated(true);
-      
+
       // Reload the page after a short delay
       console.log('Reloading page in 1.5 seconds...');
       setTimeout(() => {
@@ -546,36 +562,36 @@ export default function GroupOverseerDashboard() {
       setCreatingAddressesTable(false);
     }
   };
-  
+
   const handleEndAnySession = async (sessionId: string) => {
     try {
       setError('');
-      
+
       // Show the share data modal first
       setSessionToShareData(sessionId);
       setIsShareDataModalOpen(true);
-      
+
       // Don't delete the session here - it will be deleted after sharing in the ShareSessionDataModal
     } catch (err) {
       console.error('Error preparing to end session:', err);
       setError('Error preparing to end session');
     }
   };
-  
+
   const handleJoinSessionFromDashboard = async (sessionId: string) => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Get the current user session
       const { data: { session: userSession } } = await supabase.auth.getSession();
-      
+
       if (!userSession) {
         setError('You must be logged in to join a session.');
         setLoading(false);
         return;
       }
-      
+
       // Record the participant joining
       const { error: participantError } = await supabase
         .from('session_participants')
@@ -584,14 +600,14 @@ export default function GroupOverseerDashboard() {
           user_id: userSession.user.id,
           joined_at: new Date().toISOString()
         });
-      
+
       if (participantError) {
         console.error('Error recording participant:', participantError);
         setError('Failed to join session. Please try again.');
         setLoading(false);
         return;
       }
-      
+
       // Redirect to the session page
       router.push(`/session/${sessionId}`);
     } catch (err) {
@@ -600,238 +616,330 @@ export default function GroupOverseerDashboard() {
       setLoading(false);
     }
   };
-  
+
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading...</p>
+      <div className="page-wrapper">
+        <div className="loading-container">
+          <Loader2 size={40} className="animate-spin text-primary" />
+          <p className="loading-text">Loading dashboard...</p>
+        </div>
+        <style jsx>{`
+          .page-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-bg-body);
+          }
+          .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-4);
+          }
+          .loading-text {
+            color: var(--color-text-secondary);
+            font-weight: 500;
+          }
+          .text-primary { color: var(--color-primary); }
+          .animate-spin { animation: spin 1s linear infinite; }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
-  
+
   return (
-    <div className="container">
+    <div className="page-wrapper">
       <Head>
         <title>Group Overseer Dashboard - Not At Home</title>
         <meta name="description" content="Manage outreach sessions" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
+
       <header className="header">
-        <h1 className="title">Not at Home</h1>
-        <button onClick={handleChangeRole} className="change-role-btn">
-          Change Role
-        </button>
+        <div className="header-content">
+          <h1 className="title">Not at Home</h1>
+          <button onClick={handleChangeRole} className="btn btn-outline btn-sm">
+            <LogOut size={16} className="mr-2" />
+            Change Role
+          </button>
+        </div>
       </header>
-      
-      <main>
+
+      <main className="main-content">
         <div className="content-container">
           {error && error.includes('Sessions table does not exist') ? (
-            <div className="setup-container">
-              <div className="error-message">{error}</div>
-              <button 
-                className="setup-button"
+            <div className="card setup-card">
+              <div className="alert alert-error mb-4">
+                <AlertTriangle size={20} className="mr-2" />
+                {error}
+              </div>
+              <button
+                className="btn btn-primary w-full"
                 onClick={createSessionsTable}
                 disabled={creatingTable || tableCreated}
               >
-                {creatingTable ? 'Creating Table...' : tableCreated ? 'Table Created!' : 'Create Sessions Table'}
+                {creatingTable ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin mr-2" />
+                    Creating Table...
+                  </>
+                ) : tableCreated ? (
+                  <>
+                    <RefreshCw size={18} className="mr-2" />
+                    Table Created!
+                  </>
+                ) : (
+                  <>
+                    <Database size={18} className="mr-2" />
+                    Create Sessions Table
+                  </>
+                )}
               </button>
             </div>
           ) : error && (error.includes('Failed to create session') || error.includes('map_number')) ? (
-            <div className="setup-container">
-              <div className="error-message">{error}</div>
-              <button 
-                className="setup-button"
-                onClick={createSessionsTable}
-                disabled={creatingTable || tableCreated}
-              >
-                {creatingTable ? 'Fixing Table...' : tableCreated ? 'Table Fixed!' : 'Fix Sessions Table'}
-              </button>
-              <button 
-                className="setup-button secondary"
-                onClick={checkAndFixRlsPolicies}
-                disabled={creatingTable || tableCreated}
-              >
-                {creatingTable ? 'Fixing Policies...' : tableCreated ? 'Policies Fixed!' : 'Fix RLS Policies'}
-              </button>
-              <button 
-                className="setup-button refresh"
-                onClick={refreshSchemaCache}
-                disabled={creatingTable || tableCreated}
-              >
-                {creatingTable ? 'Refreshing Cache...' : tableCreated ? 'Cache Refreshed!' : 'Refresh Schema Cache'}
-              </button>
-              <p className="help-text">
+            <div className="card setup-card">
+              <div className="alert alert-error mb-4">
+                <AlertTriangle size={20} className="mr-2" />
+                {error}
+              </div>
+              <div className="flex flex-col gap-3">
+                <button
+                  className="btn btn-primary w-full"
+                  onClick={createSessionsTable}
+                  disabled={creatingTable || tableCreated}
+                >
+                  {creatingTable ? 'Fixing Table...' : tableCreated ? 'Table Fixed!' : 'Fix Sessions Table'}
+                </button>
+                <button
+                  className="btn btn-secondary w-full"
+                  onClick={checkAndFixRlsPolicies}
+                  disabled={creatingTable || tableCreated}
+                >
+                  <Shield size={18} className="mr-2" />
+                  {creatingTable ? 'Fixing Policies...' : tableCreated ? 'Policies Fixed!' : 'Fix RLS Policies'}
+                </button>
+                <button
+                  className="btn btn-outline w-full"
+                  onClick={refreshSchemaCache}
+                  disabled={creatingTable || tableCreated}
+                >
+                  <RefreshCw size={18} className="mr-2" />
+                  {creatingTable ? 'Refreshing Cache...' : tableCreated ? 'Cache Refreshed!' : 'Refresh Schema Cache'}
+                </button>
+              </div>
+              <p className="help-text mt-4">
                 This will update the sessions table structure, fix security policies, and refresh the schema cache.
               </p>
             </div>
           ) : (
             <>
-              <button 
-                className="session-button start-session"
+              <button
+                className="btn btn-primary btn-lg w-full start-session-btn"
                 onClick={handleStartSession}
                 disabled={creatingSession}
               >
-                {creatingSession ? 'Starting...' : 'Start Group Session'}
-              </button>
-              
-              <div className="session-code-container">
-                <p className="or-text">OR ENTER EXISTING SESSION CODE</p>
-                <input
-                  type="text"
-                  value={sessionCode}
-                  onChange={handleSessionCodeChange}
-                  placeholder="Enter session code"
-                  maxLength={4}
-                  pattern="[0-9]*"
-                  inputMode="numeric"
-                  className="session-code-input"
-                  disabled={!!selectedSession}
-                />
-                {!selectedSession && sessionCode && (
-                  <button 
-                    className="enter-session-btn"
-                    onClick={handleEnterSession}
-                  >
-                    Go
-                  </button>
+                {creatingSession ? (
+                  <>
+                    <Loader2 size={24} className="animate-spin mr-2" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <Play size={24} className="mr-2 fill-current" />
+                    Start Group Session
+                  </>
                 )}
-              </div>
-              
-              {activeSessions.length > 0 && (
-                <div className="active-sessions-container">
-                  <h3 className="sessions-heading">Your Active Sessions</h3>
-                  
-                  {activeSessions.map((session) => (
-                    <div 
-                      key={session.id} 
-                      className={`session-card ${selectedSession?.id === session.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedSession(session)}
+              </button>
+
+              <div className="card session-code-card">
+                <p className="or-text">OR ENTER EXISTING SESSION CODE</p>
+                <div className="code-input-wrapper">
+                  <Hash className="input-icon" size={20} />
+                  <input
+                    type="text"
+                    value={sessionCode}
+                    onChange={handleSessionCodeChange}
+                    placeholder="Enter session code"
+                    maxLength={4}
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    className="session-code-input"
+                    disabled={!!selectedSession}
+                  />
+                  {!selectedSession && sessionCode && (
+                    <button
+                      className="btn btn-primary go-btn"
+                      onClick={handleEnterSession}
                     >
-                      <div className="session-card-details">
-                        <div className="session-code-display">
-                          <p className="session-code">Code: <strong>{session.code}</strong></p>
-                          {session.map_number && (
-                            <p className="map-number">Map: <strong>{session.map_number}</strong></p>
-                          )}
-                          <p className="session-time">
-                            Started: {new Date(session.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </p>
+                      Go
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {activeSessions.length > 0 && (
+                <div className="active-sessions-section">
+                  <h3 className="section-heading">Your Active Sessions</h3>
+
+                  <div className="sessions-list">
+                    {activeSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`session-card ${selectedSession?.id === session.id ? 'selected' : ''}`}
+                        onClick={() => setSelectedSession(session)}
+                      >
+                        <div className="session-card-content">
+                          <div className="session-info">
+                            <div className="session-code-row">
+                              <span className="code-label">Code:</span>
+                              <span className="code-value">{session.code}</span>
+                            </div>
+                            {session.map_number && (
+                              <div className="session-map-row">
+                                <MapPin size={14} className="mr-1 text-tertiary" />
+                                <span className="map-label">Map:</span>
+                                <span className="map-value">{session.map_number}</span>
+                              </div>
+                            )}
+                            <div className="session-time-row">
+                              <Clock size={14} className="mr-1 text-tertiary" />
+                              <span className="time-value">
+                                {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="session-actions">
+                            <button
+                              className="btn-icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSessionToShare(session.code);
+                                setIsShareModalOpen(true);
+                              }}
+                              aria-label="Share session code"
+                              title="Share Code"
+                            >
+                              <Share2 size={18} />
+                            </button>
+
+                            <button
+                              className="btn-icon btn-icon-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSession(session);
+                                handleEndSession();
+                              }}
+                              title="End Session"
+                            >
+                              <LogOut size={18} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      
-                      <button 
-                        className="share-button-card"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSessionToShare(session.code);
-                          setIsShareModalOpen(true);
-                        }}
-                        aria-label="Share session code"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="18" cy="5" r="3"></circle>
-                          <circle cx="6" cy="12" r="3"></circle>
-                          <circle cx="18" cy="19" r="3"></circle>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
-                      </button>
-                      
-                      <button 
-                        className="end-session-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSession(session);
-                          handleEndSession();
-                        }}
-                      >
-                        <span className="icon">🕒</span>
-                        End
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-              
+
               {selectedSession && (
-                <div className="selected-session-info">
-                  <p className="session-info-label">Selected Session</p>
-                  <div className="session-details">
-                    <div className="session-code-row">
-                      <p className="session-code">Session Code: <strong>{selectedSession.code}</strong></p>
-                      <button 
-                        className="share-button"
+                <div className="card selected-session-card">
+                  <div className="selected-header">
+                    <p className="selected-label">Selected Session</p>
+                    <div className="selected-code-wrapper">
+                      <span className="selected-code">{selectedSession.code}</span>
+                      <button
+                        className="btn-icon"
                         onClick={() => {
                           setSessionToShare(selectedSession.code);
                           setIsShareModalOpen(true);
                         }}
                         aria-label="Share session code"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="18" cy="5" r="3"></circle>
-                          <circle cx="6" cy="12" r="3"></circle>
-                          <circle cx="18" cy="19" r="3"></circle>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
+                        <Share2 size={18} />
                       </button>
                     </div>
-                    {selectedSession.map_number && (
-                      <p className="map-number">Map: <strong>{selectedSession.map_number}</strong></p>
-                    )}
                   </div>
+
+                  {selectedSession.map_number && (
+                    <div className="selected-details">
+                      <div className="detail-item">
+                        <MapPin size={16} className="mr-2 text-primary" />
+                        <span>Map: <strong>{selectedSession.map_number}</strong></span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    className="btn btn-danger w-full mt-4"
+                    onClick={handleEndSession}
+                    disabled={endingSession}
+                  >
+                    {endingSession ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin mr-2" />
+                        Ending...
+                      </>
+                    ) : (
+                      <>
+                        <LogOut size={18} className="mr-2" />
+                        End Selected Session
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
-              
-              <button 
-                className="session-button end-session"
-                onClick={handleEndSession}
-                disabled={endingSession || !selectedSession}
-              >
-                <span className="icon">🕒</span>
-                {endingSession ? 'Ending...' : 'End Selected Session'}
-              </button>
-              
-              {error && <div className="error-message">{error}</div>}
-              
+
+              {error && <div className="alert alert-error mt-4"><AlertTriangle size={18} className="mr-2" />{error}</div>}
+
               {allOpenSessions.length > 0 && (
-                <div className="all-sessions-container">
-                  <h3 className="sessions-heading">All Open Sessions in {congregationName}</h3>
-                  
-                  <div className="sessions-table">
-                    <div className="table-header">
-                      <div className="col-code">Code</div>
-                      <div className="col-map">Map</div>
-                      <div className="col-time">Started</div>
-                      <div className="col-actions">Actions</div>
-                    </div>
-                    
-                    {allOpenSessions.map((session) => (
-                      <div key={session.id} className="table-row">
-                        <div className="col-code">{session.code}</div>
-                        <div className="col-map">{session.map_number || 'N/A'}</div>
-                        <div className="col-time">
-                          {new Date(session.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </div>
-                        <div className="col-actions">
-                          <button 
-                            className="join-session-btn-small"
-                            onClick={() => handleJoinSessionFromDashboard(session.id)}
-                          >
-                            Join Session
-                          </button>
-                          <button 
-                            className="end-session-btn-small"
-                            onClick={() => handleEndAnySession(session.id)}
-                          >
-                            End Session
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                <div className="card all-sessions-card mt-6">
+                  <h3 className="section-heading mb-4">All Open Sessions in {congregationName}</h3>
+
+                  <div className="table-responsive">
+                    <table className="sessions-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Map</th>
+                          <th>Started</th>
+                          <th className="text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allOpenSessions.map((session) => (
+                          <tr key={session.id}>
+                            <td className="font-bold">{session.code}</td>
+                            <td>{session.map_number || 'N/A'}</td>
+                            <td className="text-secondary">
+                              {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td>
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  className="btn btn-sm btn-success"
+                                  onClick={() => handleJoinSessionFromDashboard(session.id)}
+                                  title="Join Session"
+                                >
+                                  Join
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => handleEndAnySession(session.id)}
+                                  title="End Session"
+                                >
+                                  End
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -839,15 +947,19 @@ export default function GroupOverseerDashboard() {
           )}
         </div>
       </main>
-      
-      <div className="important-notice">
-        <div className="notice-icon">⚠️</div>
-        <div className="notice-content">
-          <h3>Important Notice!</h3>
-          <p>All sessions will delete including the data after 24 hours. Please be sure to share the session data with yourself within this time period. You can do this by tapping on "End Session" and then tap on "Share and End Session".</p>
+
+      <div className="notice-container">
+        <div className="notice-card">
+          <div className="notice-icon-wrapper">
+            <AlertTriangle size={24} className="notice-icon" />
+          </div>
+          <div className="notice-content">
+            <h3>Important Notice!</h3>
+            <p>All sessions will delete including the data after 24 hours. Please be sure to share the session data with yourself within this time period. You can do this by tapping on "End Session" and then tap on "Share and End Session".</p>
+          </div>
         </div>
       </div>
-      
+
       {/* Map Selection Modal */}
       <EnhancedMapSelectionModal
         isOpen={isMapModalOpen}
@@ -855,14 +967,14 @@ export default function GroupOverseerDashboard() {
         onSelectMap={handleCreateSessionWithMap}
         congregationId={congregationId}
       />
-      
+
       {/* Share Session Modal */}
       <ShareSessionModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         sessionCode={sessionToShare}
       />
-      
+
       {/* Share Session Data Modal */}
       <ShareSessionDataModal
         isOpen={isShareDataModalOpen}
@@ -870,54 +982,46 @@ export default function GroupOverseerDashboard() {
         sessionId={sessionToShareData}
         congregationName={congregationName}
       />
-      
+
       <style jsx>{`
-        .container {
+        .page-wrapper {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background-color: #f9fafb;
-          color: #111827;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background-color: var(--color-bg-body);
+          color: var(--color-text-main);
         }
         
         .header {
+          background-color: var(--color-bg-card);
+          border-bottom: 1px solid var(--color-border);
+          padding: var(--space-4);
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+        
+        .header-content {
+          max-width: 640px;
+          margin: 0 auto;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1rem;
-          border-bottom: 1px solid #e5e7eb;
-          background-color: white;
         }
         
         .title {
           margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--color-text-main);
         }
         
-        .change-role-btn {
-          background-color: white;
-          border: 1px solid #d1d5db;
-          color: #374151;
-          font-size: 0.875rem;
-          font-weight: 500;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .change-role-btn:hover {
-          background-color: #f3f4f6;
-        }
-        
-        main {
+        .main-content {
           flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 2rem 1rem;
+          padding: var(--space-6) var(--space-4);
         }
         
         .content-container {
@@ -925,518 +1029,466 @@ export default function GroupOverseerDashboard() {
           max-width: 640px;
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: var(--space-6);
         }
         
-        .session-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1.25rem;
+        .card {
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-sm);
+          border: 1px solid var(--color-border);
+          padding: var(--space-5);
+          overflow: hidden;
+        }
+        
+        .setup-card {
+          padding: var(--space-6);
+        }
+        
+        .start-session-btn {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
           border: none;
-          border-radius: 0.5rem;
-          font-size: 1.125rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2), 0 2px 4px -1px rgba(16, 185, 129, 0.1);
         }
         
-        .session-button:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
+        .start-session-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3), 0 4px 6px -1px rgba(16, 185, 129, 0.2);
         }
         
-        .start-session {
-          background-color: #d9f99d;
-          color: #365314;
-        }
-        
-        .start-session:hover:not(:disabled) {
-          background-color: #bef264;
-        }
-        
-        .end-session {
-          background-color: #f3f4f6;
-          color: #374151;
-        }
-        
-        .end-session:hover:not(:disabled) {
-          background-color: #e5e7eb;
-        }
-        
-        .icon {
-          margin-right: 0.75rem;
-        }
-        
-        .session-code-container {
-          background-color: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          padding: 1.5rem;
+        .session-code-card {
           display: flex;
           flex-direction: column;
           align-items: center;
+          padding: var(--space-6);
         }
         
         .or-text {
           text-align: center;
-          color: #6b7280;
-          font-size: 0.875rem;
-          font-weight: 500;
+          color: var(--color-text-secondary);
+          font-size: 0.75rem;
+          font-weight: 600;
           margin-top: 0;
-          margin-bottom: 1rem;
+          margin-bottom: var(--space-4);
+          letter-spacing: 0.05em;
+        }
+        
+        .code-input-wrapper {
+          position: relative;
+          width: 100%;
+          max-width: 300px;
+          display: flex;
+          gap: var(--space-2);
+        }
+        
+        .input-icon {
+          position: absolute;
+          left: var(--space-3);
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--color-text-tertiary);
+          pointer-events: none;
         }
         
         .session-code-input {
-          width: 100%;
-          padding: 0.75rem;
-          border: 1px solid #d1d5db;
-          border-radius: 0.375rem;
-          font-size: 1rem;
+          flex: 1;
+          padding: var(--space-3) var(--space-3) var(--space-3) var(--space-10);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          font-size: 1.125rem;
           text-align: center;
           letter-spacing: 0.1em;
+          font-weight: 600;
+          background-color: var(--color-bg-input);
+          color: var(--color-text-main);
+          transition: all 0.2s;
+        }
+        
+        .session-code-input:focus {
+          outline: none;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 3px var(--color-primary-light);
         }
         
         .session-code-input:disabled {
-          background-color: #f3f4f6;
+          background-color: var(--color-bg-body);
+          opacity: 0.7;
         }
         
-        .enter-session-btn {
-          margin-top: 0.75rem;
-          background-color: #2563eb;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.5rem 1rem;
-          font-weight: 500;
-          cursor: pointer;
+        .go-btn {
+          padding: 0 var(--space-4);
         }
         
-        .enter-session-btn:hover {
-          background-color: #1d4ed8;
-        }
-        
-        .active-sessions-container {
-          margin-top: 1.5rem;
-          margin-bottom: 1.5rem;
-          width: 100%;
-        }
-        
-        .sessions-heading {
+        .section-heading {
           font-size: 1.125rem;
-          font-weight: 600;
-          margin-bottom: 0.75rem;
-          color: #374151;
+          font-weight: 700;
+          margin: 0 0 var(--space-3) 0;
+          color: var(--color-text-main);
+        }
+        
+        .sessions-list {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3);
         }
         
         .session-card {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background-color: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          margin-bottom: 0.5rem;
+          background-color: var(--color-bg-card);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          padding: var(--space-4);
           cursor: pointer;
           transition: all 0.2s;
         }
         
         .session-card.selected {
-          border: 2px solid #10b981;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px var(--color-primary-light);
+          background-color: var(--color-bg-surface);
         }
         
-        .session-card:hover {
-          background-color: #f9fafb;
+        .session-card:hover:not(.selected) {
+          border-color: var(--color-border-hover);
+          transform: translateY(-1px);
         }
         
-        .session-card-details {
-          flex: 1;
-        }
-        
-        .session-code-display {
-          display: flex;
-          flex-direction: column;
-          gap: 0.125rem;
-        }
-        
-        .session-code {
-          margin: 0;
-          font-size: 1rem;
-          font-weight: 500;
-        }
-        
-        .map-number {
-          margin: 0;
-          font-size: 0.9rem;
-        }
-        
-        .session-time {
-          font-size: 0.75rem;
-          color: #6b7280;
-          margin: 0;
-        }
-        
-        .share-button-card {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background-color: transparent;
-          border: none;
-          color: #4b5563;
-          padding: 0.5rem;
-          border-radius: 50%;
-          cursor: pointer;
-          transition: all 0.2s;
-          margin: 0 0.5rem;
-        }
-        
-        .share-button-card:hover {
-          background-color: rgba(229, 231, 235, 0.5);
-          color: #111827;
-        }
-        
-        .share-button-card svg {
-          width: 1.25rem;
-          height: 1.25rem;
-        }
-        
-        .end-session-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-          background-color: #fee2e2;
-          color: #b91c1c;
-          border: none;
-          padding: 0.375rem 0.5rem;
-          border-radius: 0.375rem;
-          font-size: 0.75rem;
-          cursor: pointer;
-          height: fit-content;
-        }
-        
-        .end-session-btn:hover {
-          background-color: #fecaca;
-        }
-        
-        .selected-session-info {
-          margin-top: 1.5rem;
-          padding: 1rem;
-          background-color: #f0fdf4;
-          border: 1px solid #d1fae5;
-          border-radius: 0.5rem;
-          width: 100%;
-        }
-        
-        .session-info-label {
-          color: #166534;
-          font-size: 0.875rem;
-          font-weight: 500;
-          margin-top: 0;
-          margin-bottom: 0.5rem;
-        }
-        
-        .session-details {
+        .session-card-content {
           display: flex;
           justify-content: space-between;
+          align-items: center;
         }
         
-        .error-message {
-          color: #ef4444;
-          background-color: #fee2e2;
-          padding: 0.75rem;
-          border-radius: 0.375rem;
-          text-align: center;
-          width: 100%;
-        }
-        
-        .setup-container {
+        .session-info {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-          width: 100%;
-        }
-        
-        .setup-button {
-          background-color: #3b82f6;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.75rem 1.5rem;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .setup-button:hover:not(:disabled) {
-          background-color: #2563eb;
-        }
-        
-        .setup-button.secondary {
-          background-color: #4b5563;
-          margin-top: 0.5rem;
-        }
-        
-        .setup-button.secondary:hover:not(:disabled) {
-          background-color: #374151;
-        }
-        
-        .setup-button.refresh {
-          background-color: #0ea5e9;
-          margin-top: 0.5rem;
-        }
-        
-        .setup-button.refresh:hover:not(:disabled) {
-          background-color: #0284c7;
-        }
-        
-        .setup-button:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-        
-        .help-text {
-          color: #6b7280;
-          font-size: 0.875rem;
-          text-align: center;
-          margin-top: 0.5rem;
-        }
-        
-        .loading-container {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background-color: #f9fafb;
-        }
-        
-        .spinner {
-          width: 2.5rem;
-          height: 2.5rem;
-          border: 3px solid rgba(0, 0, 0, 0.1);
-          border-top-color: #2563eb;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 1rem;
-        }
-        
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
+          gap: var(--space-1);
         }
         
         .session-code-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
+          font-size: 1.125rem;
+          margin-bottom: var(--space-1);
         }
         
-        .share-button {
+        .code-label {
+          color: var(--color-text-secondary);
+          margin-right: var(--space-2);
+          font-size: 0.875rem;
+        }
+        
+        .code-value {
+          font-weight: 700;
+          color: var(--color-text-main);
+        }
+        
+        .session-map-row, .session-time-row {
+          display: flex;
+          align-items: center;
+          font-size: 0.875rem;
+        }
+        
+        .map-label {
+          color: var(--color-text-secondary);
+          margin-right: var(--space-1);
+        }
+        
+        .map-value {
+          font-weight: 600;
+          color: var(--color-text-main);
+        }
+        
+        .time-value {
+          color: var(--color-text-secondary);
+        }
+        
+        .session-actions {
+          display: flex;
+          gap: var(--space-2);
+        }
+        
+        .btn-icon {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: transparent;
-          border: none;
-          color: #4b5563;
-          padding: 0.5rem;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
+          border: 1px solid var(--color-border);
+          background-color: transparent;
+          color: var(--color-text-secondary);
           cursor: pointer;
           transition: all 0.2s;
         }
         
-        .share-button:hover {
-          background-color: rgba(229, 231, 235, 0.5);
-          color: #111827;
+        .btn-icon:hover {
+          background-color: var(--color-bg-surface);
+          color: var(--color-primary);
+          border-color: var(--color-primary-light);
         }
         
-        .share-button svg {
-          width: 1.25rem;
-          height: 1.25rem;
+        .btn-icon-danger:hover {
+          color: var(--color-error);
+          border-color: var(--color-error-bg);
+          background-color: var(--color-error-bg);
         }
         
-        .error-details {
-          margin-top: 0.5rem;
-          font-size: 0.75rem;
-          color: #ef4444;
+        .selected-session-card {
+          background-color: var(--color-success-bg);
+          border-color: rgba(16, 185, 129, 0.2);
         }
         
-        .all-sessions-container {
-          width: 100%;
-          margin-top: 2rem;
-          background-color: white;
-          border-radius: 0.5rem;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          padding: 1.5rem;
-        }
-        
-        .sessions-table {
-          width: 100%;
-          margin-top: 1rem;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.375rem;
-          overflow: hidden;
-        }
-        
-        .table-header {
+        .selected-header {
           display: flex;
-          background-color: #f3f4f6;
-          font-weight: 600;
-          font-size: 0.875rem;
-          color: #374151;
-          padding: 0.75rem 1rem;
-        }
-        
-        .table-row {
-          display: flex;
-          border-top: 1px solid #e5e7eb;
-          padding: 0.75rem 1rem;
-          font-size: 0.875rem;
-        }
-        
-        .col-code {
-          width: 20%;
-          font-weight: 600;
-        }
-        
-        .col-map {
-          width: 20%;
-        }
-        
-        .col-time {
-          width: 30%;
-        }
-        
-        .col-actions {
-          width: 30%;
-          display: flex;
-          justify-content: flex-end;
+          justify-content: space-between;
           align-items: center;
+          margin-bottom: var(--space-4);
+          border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+          padding-bottom: var(--space-3);
         }
         
-        .end-session-btn-small {
-          background-color: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.25rem 0.5rem;
-          font-size: 0.7rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
+        .selected-label {
+          color: var(--color-success);
+          font-weight: 600;
+          font-size: 0.875rem;
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
         
-        .end-session-btn-small:hover {
-          background-color: #dc2626;
-        }
-        
-        .join-session-btn-small {
-          background-color: #10b981;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.375rem 0.75rem;
-          font-size: 0.75rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-          margin-right: 0.5rem;
-        }
-        
-        .join-session-btn-small:hover {
-          background-color: #059669;
-        }
-        
-        .important-notice {
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-          padding: 1rem;
-          background-color: #fff3cd;
-          border: 1px solid #ffeeba;
-          border-radius: 0.5rem;
+        .selected-code-wrapper {
           display: flex;
-          align-items: flex-start;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          align-items: center;
+          gap: var(--space-3);
         }
         
-        .notice-icon {
+        .selected-code {
           font-size: 1.5rem;
-          margin-right: 0.75rem;
-          padding-top: 0.25rem;
+          font-weight: 800;
+          color: var(--color-text-main);
+        }
+        
+        .selected-details {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
+        }
+        
+        .detail-item {
+          display: flex;
+          align-items: center;
+          font-size: 1rem;
+          color: var(--color-text-main);
+        }
+        
+        .alert {
+          padding: var(--space-3) var(--space-4);
+          border-radius: var(--radius-lg);
+          display: flex;
+          align-items: center;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+        
+        .alert-error {
+          background-color: var(--color-error-bg);
+          color: var(--color-error);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .notice-container {
+          width: 100%;
+          max-width: 640px;
+          margin: 0 auto var(--space-8);
+          padding: 0 var(--space-4);
+        }
+        
+        .notice-card {
+          background-color: #fffbeb;
+          border: 1px solid #fcd34d;
+          border-radius: var(--radius-lg);
+          padding: var(--space-4);
+          display: flex;
+          gap: var(--space-4);
+        }
+        
+        .notice-icon-wrapper {
+          color: #d97706;
+          flex-shrink: 0;
         }
         
         .notice-content h3 {
-          margin: 0 0 0.5rem 0;
-          color: #856404;
-          font-size: 1.1rem;
-          font-weight: 600;
+          margin: 0 0 var(--space-2) 0;
+          color: #92400e;
+          font-size: 1rem;
+          font-weight: 700;
         }
         
         .notice-content p {
           margin: 0;
-          color: #856404;
-          font-size: 0.95rem;
+          color: #92400e;
+          font-size: 0.875rem;
           line-height: 1.5;
         }
         
+        .table-responsive {
+          overflow-x: auto;
+        }
+        
+        .sessions-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.875rem;
+        }
+        
+        .sessions-table th {
+          text-align: left;
+          padding: var(--space-3);
+          border-bottom: 1px solid var(--color-border);
+          color: var(--color-text-secondary);
+          font-weight: 600;
+        }
+        
+        .sessions-table td {
+          padding: var(--space-3);
+          border-bottom: 1px solid var(--color-border);
+          color: var(--color-text-main);
+        }
+        
+        .sessions-table tr:last-child td {
+          border-bottom: none;
+        }
+        
+        .text-right { text-align: right; }
+        .text-secondary { color: var(--color-text-secondary); }
+        .text-tertiary { color: var(--color-text-tertiary); }
+        .text-primary { color: var(--color-primary); }
+        .font-bold { font-weight: 700; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .justify-end { justify-content: flex-end; }
+        .gap-2 { gap: var(--space-2); }
+        .gap-3 { gap: var(--space-3); }
+        .mt-4 { margin-top: var(--space-4); }
+        .mt-6 { margin-top: var(--space-6); }
+        .mb-4 { margin-bottom: var(--space-4); }
+        .mr-1 { margin-right: var(--space-1); }
+        .mr-2 { margin-right: var(--space-2); }
+        .w-full { width: 100%; }
+        .fill-current { fill: currentColor; }
+        
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.625rem 1rem;
+          border-radius: var(--radius-lg);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+          font-size: 0.95rem;
+        }
+        
+        .btn-sm {
+          padding: 0.375rem 0.75rem;
+          font-size: 0.875rem;
+        }
+        
+        .btn-lg {
+          padding: 1rem 1.5rem;
+          font-size: 1.125rem;
+        }
+        
+        .btn-primary {
+          background-color: var(--color-primary);
+          color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+          background-color: var(--color-primary-hover);
+          transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+          background-color: var(--color-bg-surface);
+          color: var(--color-text-main);
+          border-color: var(--color-border);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+          background-color: var(--color-bg-input);
+          border-color: var(--color-border-hover);
+        }
+        
+        .btn-outline {
+          background-color: transparent;
+          border-color: var(--color-border);
+          color: var(--color-text-secondary);
+        }
+        
+        .btn-outline:hover:not(:disabled) {
+          border-color: var(--color-text-secondary);
+          color: var(--color-text-main);
+        }
+        
+        .btn-danger {
+          background-color: var(--color-error-bg);
+          color: var(--color-error);
+          border-color: rgba(239, 68, 68, 0.2);
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+          background-color: #fee2e2;
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-success {
+          background-color: var(--color-success-bg);
+          color: var(--color-success);
+          border-color: rgba(16, 185, 129, 0.2);
+        }
+        
+        .btn-success:hover:not(:disabled) {
+          background-color: #d1fae5;
+        }
+        
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 640px) {
+          .main-content {
+            padding: var(--space-4) var(--space-3);
+          }
+          
+          .header-content {
+            padding: 0 var(--space-2);
+          }
+          
           .sessions-table {
             font-size: 0.75rem;
           }
           
-          .table-header, .table-row {
-            padding: 0.5rem;
+          .sessions-table th, .sessions-table td {
+            padding: var(--space-2);
           }
           
-          .col-code {
-            width: 25%;
-          }
-          
-          .col-map {
-            width: 20%;
-          }
-          
-          .col-time {
-            width: 25%;
-          }
-          
-          .col-actions {
-            width: 30%;
-          }
-          
-          .end-session-btn-small {
+          .btn-sm {
             padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-          }
-          
-          .join-session-btn-small {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-            margin-right: 0.3rem;
-          }
-          
-          .important-notice {
-            padding: 0.75rem;
-          }
-          
-          .notice-icon {
-            font-size: 1.25rem;
-          }
-          
-          .notice-content h3 {
-            font-size: 1rem;
-          }
-          
-          .notice-content p {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
           }
         }
       `}</style>
     </div>
   );
-} 
+}

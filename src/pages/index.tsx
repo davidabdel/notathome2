@@ -3,56 +3,60 @@ import Head from 'next/head';
 import Link from 'next/link';
 import LoginForm from '../components/auth/LoginForm';
 import { supabase } from '../../supabase/config';
+import { useRouter } from 'next/router';
+import { LogIn, Shield, LayoutDashboard, LogOut, ArrowRight, CheckCircle2 } from 'lucide-react';
+
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCongregationAdmin, setIsCongregationAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     // Check if user is logged in and has congregation admin role
     const checkUserStatus = async () => {
       try {
         setLoading(true);
-        
+
         // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
           setIsLoggedIn(false);
           setLoading(false);
           return;
         }
-        
+
         const userId = session.user.id;
         setIsLoggedIn(true);
-        
+
         // Check if user is the superadmin (david@uconnect.com.au)
         if (session.user.email === 'david@uconnect.com.au') {
           // Redirect superadmin directly to admin dashboard
           window.location.href = '/admin';
           return;
         }
-        
+
         // Check if user has congregation_admin role
         const { data: congregationAdminRoles } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
           .eq('role', 'congregation_admin');
-        
+
         setIsCongregationAdmin(!!congregationAdminRoles && congregationAdminRoles.length > 0);
-        
+
         // Check if user has admin role
         const { data: adminRoles } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
           .eq('role', 'admin');
-        
+
         setIsAdmin(!!adminRoles && adminRoles.length > 0);
-        
+
         // Redirect to role selection page if user is logged in but not an admin
         if (!adminRoles || adminRoles.length === 0) {
           window.location.href = '/role-selection';
@@ -63,22 +67,22 @@ export default function Home() {
         setLoading(false);
       }
     };
-    
+
     checkUserStatus();
-    
+
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           setIsLoggedIn(true);
-          
+
           // Check if user is the superadmin (david@uconnect.com.au)
           if (session.user.email === 'david@uconnect.com.au') {
             // Redirect superadmin directly to admin dashboard
             window.location.href = '/admin';
             return;
           }
-          
+
           checkUserStatus();
         } else if (event === 'SIGNED_OUT') {
           setIsLoggedIn(false);
@@ -87,7 +91,7 @@ export default function Home() {
         }
       }
     );
-    
+
     // Clean up the listener
     return () => {
       if (authListener && authListener.subscription) {
@@ -115,7 +119,7 @@ export default function Home() {
   };
 
   return (
-    <div className="container">
+    <div className="page-wrapper">
       <Head>
         <title>Not At Home - Missionary Tracking</title>
         <meta name="description" content="Track not-at-home locations during door-to-door outreach" />
@@ -123,342 +127,269 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main>
-        <div className="content-container">
-          <div className="header">
-            <h1 className="title">Not At Home</h1>
-            <p className="description">
-              ... Bearing thorough witness...
-            </p>
+      <main className="main-content">
+        <div className="brand-section">
+          <div className="logo-container">
+            <div className="logo-icon">
+              <CheckCircle2 size={48} strokeWidth={2.5} />
+            </div>
           </div>
+          <h1 className="brand-title">Not At Home</h1>
+          <p className="brand-subtitle">Bearing thorough witness</p>
+        </div>
 
+        <div className="card login-card">
           {isLoggedIn ? (
-            <div className="logged-in-container">
-              <p className="welcome-message">Welcome! You are signed in.</p>
-              <button onClick={handleSignOut} className="sign-out-button">
-                Sign Out
-              </button>
+            <div className="logged-in-state">
+              <div className="welcome-header">
+                <div className="avatar-placeholder">
+                  <span className="avatar-text">👋</span>
+                </div>
+                <h2 className="welcome-title">Welcome Back</h2>
+                <p className="welcome-text">You are currently signed in.</p>
+              </div>
+
+              <div className="action-buttons">
+                {isCongregationAdmin && (
+                  <Link href="/dashboard/sessions" className="btn btn-primary w-full">
+                    <LayoutDashboard size={18} className="mr-2" />
+                    Manage Sessions
+                  </Link>
+                )}
+
+                {isAdmin && (
+                  <Link href="/admin" className="btn btn-secondary w-full">
+                    <Shield size={18} className="mr-2" />
+                    Admin Dashboard
+                  </Link>
+                )}
+
+                <button onClick={handleSignOut} className="btn btn-outline w-full">
+                  <LogOut size={18} className="mr-2" />
+                  Sign Out
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="login-container">
-              <LoginForm onSuccess={handleLoginSuccess} />
-            </div>
+            <LoginForm onSuccess={handleLoginSuccess} />
           )}
-
-          <div className="quick-actions">
-            {isLoggedIn && isCongregationAdmin && (
-              <Link href="/dashboard/sessions" className="action-button secondary">
-                Manage Sessions
-              </Link>
-            )}
-            
-            {isLoggedIn && isAdmin && (
-              <Link href="/admin" className="action-button admin">
-                Admin Dashboard
-              </Link>
-            )}
-          </div>
-
-          <div className="info-container">
-            {/* Removed "Don't have an account yet? Request access" text */}
-          </div>
         </div>
-        
-        <div className="admin-login-container">
-          <button 
-            onClick={() => window.location.href = '/congregation/login'} 
-            className="admin-login-button"
+
+        <div className="footer-actions">
+          <button
+            onClick={() => window.location.href = '/congregation/login'}
+            className="admin-link"
           >
-            Congregation Admin Login
+            Congregation Admin Login <ArrowRight size={14} className="ml-1" />
           </button>
         </div>
       </main>
 
-      <footer>
-        <div className="footer-content">
-          <span className="copyright">© 2025 UConnect (International) Pty Ltd t/as nothome.app</span>
-        </div>
+      <footer className="site-footer">
+        <p>© 2025 UConnect (International) Pty Ltd t/as nothome.app</p>
       </footer>
 
       <style jsx>{`
-        :root {
-          --primary-color: #2563eb;
-          --primary-hover: #1d4ed8;
-          --secondary-color: #4b5563;
-          --secondary-hover: #374151;
-          --text-color: #111827;
-          --text-secondary: #4b5563;
-          --background-color: #f9fafb;
-          --border-color: #e5e7eb;
-          --link-color: #2563eb;
-          --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          --spacing-xs: 0.5rem;
-          --spacing-sm: 1rem;
-          --spacing-md: 1.5rem;
-          --spacing-lg: 2rem;
-          --spacing-xl: 3rem;
-          --font-size-sm: 0.875rem;
-          --font-size-md: 1rem;
-          --font-size-lg: 1.125rem;
-          --font-size-xl: 1.5rem;
-          --font-size-xxl: 2.5rem;
-        }
-
-        .container {
+        .page-wrapper {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background-color: var(--background-color);
-          color: var(--text-color);
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background-color: var(--color-bg-body);
+          background-image: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
         }
 
-        main {
+        .main-content {
           flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: var(--spacing-md);
+          padding: var(--space-6);
           width: 100%;
         }
 
-        .content-container {
-          width: 100%;
-          max-width: 480px;
-        }
-
-        .header {
+        .brand-section {
           text-align: center;
-          margin-bottom: var(--spacing-lg);
-        }
-
-        .title {
-          margin: 0;
-          font-size: var(--font-size-xxl);
-          font-weight: 700;
-          line-height: 1.2;
-          color: var(--text-color);
-          letter-spacing: -0.025em;
-        }
-
-        .description {
-          margin-top: var(--spacing-xs);
-          color: var(--text-secondary);
-          font-size: var(--font-size-lg);
-          font-weight: 400;
-        }
-
-        .login-container {
-          margin-bottom: var(--spacing-md);
-          background-color: white;
-          border-radius: 12px;
-          box-shadow: var(--card-shadow);
-          overflow: hidden;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .button-container {
-          margin-top: var(--spacing-md);
-          text-align: center;
-        }
-        
-        .admin-login-link {
-          display: inline-block;
-          color: var(--link-color);
-          font-weight: 500;
-          text-decoration: none;
-          padding: 0.5rem;
-          transition: color 0.2s;
-        }
-        
-        .admin-login-link:hover {
-          text-decoration: underline;
-          color: var(--primary-hover);
-        }
-
-        .quick-actions {
+          margin-bottom: var(--space-8);
           display: flex;
           flex-direction: column;
-          gap: var(--spacing-md);
-          width: 100%;
-          margin-bottom: var(--spacing-lg);
-        }
-
-        .action-button {
-          display: flex;
-          justify-content: center;
           align-items: center;
-          padding: var(--spacing-sm) var(--spacing-md);
-          border-radius: 8px;
-          font-size: var(--font-size-md);
-          font-weight: 500;
-          text-decoration: none;
-          text-align: center;
-          transition: all 0.2s ease;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .action-button.primary {
-          background-color: var(--primary-color);
-          color: white;
+        .logo-container {
+          margin-bottom: var(--space-4);
         }
 
-        .action-button.primary:hover {
-          background-color: var(--primary-hover);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .logo-icon {
+          color: var(--color-primary);
+          filter: drop-shadow(0 4px 6px rgba(37, 99, 235, 0.2));
         }
 
-        .action-button.secondary {
-          background-color: var(--secondary-color);
-          color: white;
+        .brand-title {
+          font-size: 3.5rem;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          margin: 0;
+          background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          line-height: 1.1;
         }
 
-        .action-button.secondary:hover {
-          background-color: var(--secondary-hover);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .action-button.admin {
-          background-color: #8b5cf6;
-          color: white;
-        }
-        
-        .action-button.admin:hover {
-          background-color: #7c3aed;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .info-container {
-          text-align: center;
-          margin-top: var(--spacing-md);
-        }
-
-        .info-text {
-          color: var(--text-secondary);
-          font-size: var(--font-size-md);
-        }
-
-        .link {
-          color: var(--link-color);
-          text-decoration: none;
+        .brand-subtitle {
+          margin-top: var(--space-2);
+          color: var(--color-text-secondary);
+          font-size: 1.25rem;
           font-weight: 500;
         }
 
-        .link:hover {
-          text-decoration: underline;
+        .card {
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-lg);
+          border: 1px solid var(--color-border);
+          overflow: hidden;
         }
 
-        footer {
+        .login-card {
           width: 100%;
-          padding: var(--spacing-md);
-          border-top: 1px solid var(--border-color);
-          margin-top: auto;
+          max-width: 420px;
+          padding: var(--space-8);
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(12px);
         }
 
-        .footer-content {
-          max-width: 1200px;
-          margin: 0 auto;
+        .logged-in-state {
+          text-align: center;
+        }
+
+        .welcome-header {
+          margin-bottom: var(--space-8);
           display: flex;
-          justify-content: center;
+          flex-direction: column;
           align-items: center;
-          font-size: var(--font-size-sm);
-          color: var(--text-secondary);
         }
 
-        .copyright {
-          color: var(--text-secondary);
+        .avatar-placeholder {
+          width: 64px;
+          height: 64px;
+          background-color: var(--color-bg-surface);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: var(--space-4);
+          border: 2px solid var(--color-border);
         }
 
-        @media (min-width: 768px) {
-          .title {
-            font-size: 3rem;
-          }
+        .avatar-text {
+          font-size: 2rem;
         }
 
-        .logged-in-container {
-          width: 100%;
-          background-color: white;
-          border-radius: 12px;
-          padding: 2rem;
-          box-shadow: var(--card-shadow);
-          margin-bottom: var(--spacing-md);
-          text-align: center;
+        .welcome-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          margin: 0 0 var(--space-2) 0;
+          color: var(--color-text-main);
         }
-        
-        .welcome-message {
-          margin-bottom: 1.5rem;
-          font-size: 1.125rem;
-          color: var(--text-color);
+
+        .welcome-text {
+          color: var(--color-text-secondary);
+          margin: 0;
         }
-        
-        .sign-out-button {
-          padding: 0.75rem 1.5rem;
-          background-color: #ef4444;
-          color: white;
+
+        .action-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3);
+        }
+
+        .footer-actions {
+          margin-top: var(--space-8);
+        }
+
+        .admin-link {
+          background: none;
           border: none;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        
-        .sign-out-button:hover {
-          background-color: #dc2626;
-          transform: translateY(-1px);
-          box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-login-container {
-          width: 100%;
-          max-width: 480px;
-          margin: 0 auto;
-          margin-top: var(--spacing-md);
-          margin-bottom: var(--spacing-lg);
-          padding: 0 var(--spacing-md);
-        }
-        
-        .admin-login-button {
-          background-color: #3a7bc8;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 0.85rem;
-          font-size: 1rem;
-          font-weight: 600;
+          color: var(--color-text-tertiary);
+          font-size: 0.875rem;
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          width: 100%;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+        }
+
+        .admin-link:hover {
+          color: var(--color-primary);
+        }
+
+        .site-footer {
+          padding: var(--space-6);
+          text-align: center;
+          color: var(--color-text-tertiary);
+          font-size: 0.75rem;
         }
         
-        .admin-login-button:hover {
-          background-color: #2c5d99;
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.75rem 1.5rem;
+          border-radius: var(--radius-lg);
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+          cursor: pointer;
+        }
+        
+        .btn-primary {
+          background-color: var(--color-primary);
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          background-color: var(--color-primary-hover);
           transform: translateY(-1px);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-secondary {
+          background-color: var(--color-bg-surface);
+          color: var(--color-text-main);
+          border-color: var(--color-border);
+        }
+        
+        .btn-secondary:hover {
+          background-color: var(--color-bg-input);
+          border-color: var(--color-border-hover);
+        }
+        
+        .btn-outline {
+          background-color: transparent;
+          border-color: var(--color-border);
+          color: var(--color-text-secondary);
+        }
+        
+        .btn-outline:hover {
+          border-color: var(--color-text-secondary);
+          color: var(--color-text-main);
+        }
+        
+        .w-full { width: 100%; }
+        .mr-2 { margin-right: var(--space-2); }
+        .ml-1 { margin-left: var(--space-1); }
+
+        @media (max-width: 640px) {
+          .brand-title { font-size: 2.5rem; }
+          .login-card { padding: var(--space-6); }
         }
       `}</style>
-
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
-          background-color: #f9fafb;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
+      {/* Hidden admin link (clickable area) */}
+      <div
+        onClick={() => router.push('/admin')}
+        style={{ position: 'fixed', bottom: 0, right: 0, width: '40px', height: '40px', opacity: 0, zIndex: 1000, cursor: 'pointer' }}
+      ></div>
     </div>
   );
-} 
+}

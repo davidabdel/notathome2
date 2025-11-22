@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { ArrowLeft, Check, Loader2, AlertCircle, Building, Hash, Mail, ArrowRight } from 'lucide-react';
 
 interface CongregationRequest {
   name: string;
@@ -20,7 +21,7 @@ export default function RequestCongregation() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     // For PIN code, ensure it's only digits and max 10 characters
     if (name === 'pin_code') {
       const pinValue = value.replace(/\D/g, '').slice(0, 10);
@@ -62,13 +63,13 @@ export default function RequestCongregation() {
         },
         body: JSON.stringify(data),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Failed to submit request');
       }
-      
+
       return true;
     } catch (err) {
       console.error('Error submitting request:', err);
@@ -80,13 +81,13 @@ export default function RequestCongregation() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
+
     const result = await submitRequest(formData);
-    
+
     if (result) {
       setSuccess(true);
       setFormData({
@@ -95,91 +96,122 @@ export default function RequestCongregation() {
         contact_email: '',
       });
     }
-    
+
     setLoading(false);
   };
 
   return (
-    <div className="container">
+    <div className="page-wrapper">
       <Head>
         <title>Request Congregation Access - Not At Home</title>
         <meta name="description" content="Request access for your congregation to use Not At Home" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
-      <main>
+      <main className="main-content">
         <div className="content-container">
           <div className="header">
-            <Link href="/" className="back-link">← Back to home</Link>
-            <h1>Request Congregation Access</h1>
+            <Link href="/" className="back-link">
+              <ArrowLeft size={16} className="mr-1" /> Back to home
+            </Link>
+            <h1 className="title">Request Congregation Access</h1>
             <p className="description">Fill out this form to request access for your congregation</p>
           </div>
 
           {success ? (
-            <div className="success-container">
-              <div className="success-icon">✓</div>
-              <h2>Request Submitted</h2>
-              <p>Thank you for your request. We'll notify you at your email when it's approved.</p>
-              <button 
-                onClick={() => setSuccess(false)} 
-                className="submit-button"
+            <div className="card success-card">
+              <div className="success-icon-wrapper">
+                <Check size={32} className="success-icon" />
+              </div>
+              <h2 className="success-title">Request Submitted</h2>
+              <p className="success-message">Thank you for your request. We'll notify you at your email when it's approved.</p>
+              <button
+                onClick={() => setSuccess(false)}
+                className="btn btn-primary"
               >
                 Submit Another Request
               </button>
             </div>
           ) : (
-            <div className="form-container">
+            <div className="card form-card">
               <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                  <label htmlFor="name">Congregation Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter congregation name"
-                  />
+                  <label htmlFor="name" className="input-label">Congregation Name</label>
+                  <div className="input-wrapper">
+                    <Building className="input-icon" size={20} />
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      placeholder="Enter congregation name"
+                      className="input-field with-icon"
+                    />
+                  </div>
                 </div>
-                
+
                 <div className="form-group">
-                  <label htmlFor="pin_code">PIN Code</label>
-                  <input
-                    type="text"
-                    id="pin_code"
-                    name="pin_code"
-                    value={formData.pin_code}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter 3-10 digit PIN"
-                    inputMode="numeric"
-                  />
+                  <label htmlFor="pin_code" className="input-label">PIN Code</label>
+                  <div className="input-wrapper">
+                    <Hash className="input-icon" size={20} />
+                    <input
+                      type="text"
+                      id="pin_code"
+                      name="pin_code"
+                      value={formData.pin_code}
+                      onChange={handleChange}
+                      required
+                      placeholder="Enter 3-10 digit PIN"
+                      inputMode="numeric"
+                      className="input-field with-icon font-mono"
+                    />
+                  </div>
                   <div className="input-hint">This PIN will be used by congregation members to access the app</div>
                 </div>
-                
+
                 <div className="form-group">
-                  <label htmlFor="contact_email">Contact Email</label>
-                  <input
-                    type="email"
-                    id="contact_email"
-                    name="contact_email"
-                    value={formData.contact_email}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter contact email"
-                  />
+                  <label htmlFor="contact_email" className="input-label">Contact Email</label>
+                  <div className="input-wrapper">
+                    <Mail className="input-icon" size={20} />
+                    <input
+                      type="email"
+                      id="contact_email"
+                      name="contact_email"
+                      value={formData.contact_email}
+                      onChange={handleChange}
+                      required
+                      placeholder="Enter contact email"
+                      className="input-field with-icon"
+                    />
+                  </div>
                   <div className="input-hint">We'll notify you at this email when your request is approved</div>
                 </div>
-                
-                {error && <div className="error-message">{error}</div>}
-                
-                <button 
-                  type="submit" 
+
+                {error && (
+                  <div className="error-alert">
+                    <AlertCircle size={18} className="mr-2" />
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
                   disabled={loading || !formData.name || !formData.pin_code || !formData.contact_email}
-                  className="submit-button"
+                  className="btn btn-primary w-full"
                 >
-                  {loading ? 'Submitting...' : 'Submit Request'}
+                  {loading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin mr-2" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Request
+                      <ArrowRight size={18} className="ml-2" />
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -187,7 +219,7 @@ export default function RequestCongregation() {
         </div>
       </main>
 
-      <footer>
+      <footer className="footer">
         <div className="footer-content">
           <a href="/setup-database" className="footer-link">Database Setup</a>
           <span className="divider">•</span>
@@ -196,53 +228,30 @@ export default function RequestCongregation() {
       </footer>
 
       <style jsx>{`
-        :root {
-          --primary-color: #2563eb;
-          --primary-hover: #1d4ed8;
-          --success-color: #10b981;
-          --error-color: #ef4444;
-          --text-color: #111827;
-          --text-secondary: #4b5563;
-          --background-color: #f3f4f6;
-          --border-color: #e5e7eb;
-          --input-background: #f9fafb;
-          --spacing-xs: 0.5rem;
-          --spacing-sm: 1rem;
-          --spacing-md: 1.5rem;
-          --spacing-lg: 2rem;
-          --spacing-xl: 3rem;
-        }
-
-        .container {
+        .page-wrapper {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background-color: var(--background-color);
-          color: var(--text-color);
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background-color: var(--color-bg-body);
+          color: var(--color-text-main);
         }
 
-        main {
+        .main-content {
           flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: var(--spacing-xl) var(--spacing-md);
+          padding: var(--space-8) var(--space-6);
           width: 100%;
         }
 
         .content-container {
           width: 100%;
           max-width: 600px;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          padding: var(--spacing-xl) var(--spacing-xl);
-          margin-top: var(--spacing-lg);
         }
 
         .header {
-          margin-bottom: var(--spacing-xl);
+          margin-bottom: var(--space-8);
           text-align: left;
           width: 100%;
         }
@@ -250,168 +259,198 @@ export default function RequestCongregation() {
         .back-link {
           display: inline-flex;
           align-items: center;
-          margin-bottom: var(--spacing-lg);
-          color: var(--text-secondary);
+          margin-bottom: var(--space-6);
+          color: var(--color-text-secondary);
           text-decoration: none;
           font-size: 0.875rem;
+          font-weight: 500;
           transition: color 0.2s;
         }
 
         .back-link:hover {
-          color: var(--primary-color);
+          color: var(--color-primary);
         }
 
-        h1 {
+        .title {
           font-size: 2.25rem;
-          font-weight: 700;
-          color: var(--text-color);
-          margin: 0 0 var(--spacing-sm);
+          font-weight: 800;
+          color: var(--color-text-main);
+          margin: 0 0 var(--space-2) 0;
           line-height: 1.2;
+          letter-spacing: -0.025em;
         }
 
         .description {
-          color: var(--text-secondary);
+          color: var(--color-text-secondary);
           font-size: 1.125rem;
           margin: 0;
           line-height: 1.5;
         }
 
-        .form-container {
-          width: 100%;
-          margin-top: var(--spacing-lg);
+        .card {
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-lg);
+          border: 1px solid var(--color-border);
+          overflow: hidden;
+        }
+
+        .form-card {
+          padding: var(--space-8);
         }
 
         .form-group {
-          margin-bottom: var(--spacing-xl);
+          margin-bottom: var(--space-6);
         }
 
-        label {
+        .input-label {
           display: block;
           font-weight: 600;
-          margin-bottom: var(--spacing-sm);
-          color: var(--text-color);
-          font-size: 1rem;
+          margin-bottom: var(--space-2);
+          color: var(--color-text-main);
+          font-size: 0.95rem;
         }
 
-        input {
+        .input-wrapper {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: var(--space-3);
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--color-text-tertiary);
+          pointer-events: none;
+        }
+
+        .input-field {
           width: 100%;
-          padding: 1rem 1.25rem;
-          border: 2px solid var(--border-color);
-          border-radius: 10px;
-          font-size: 1.125rem;
+          padding: var(--space-3);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          font-size: 1rem;
           transition: all 0.2s;
-          background: var(--input-background);
-          color: var(--text-color);
+          background: var(--color-bg-input);
+          color: var(--color-text-main);
         }
 
-        input::placeholder {
-          color: #9ca3af;
+        .input-field.with-icon {
+          padding-left: var(--space-10);
         }
 
-        input:hover {
-          border-color: #cbd5e1;
-          background: white;
-        }
-
-        input:focus {
+        .input-field:focus {
           outline: none;
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-          background: white;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 4px var(--color-primary-light);
+          background: var(--color-bg-card);
         }
 
         .input-hint {
-          margin-top: var(--spacing-sm);
+          margin-top: var(--space-2);
           font-size: 0.875rem;
-          color: var(--text-secondary);
+          color: var(--color-text-tertiary);
           line-height: 1.5;
         }
+        
+        .font-mono {
+          font-family: monospace;
+          letter-spacing: 0.05em;
+        }
 
-        .error-message {
-          color: var(--error-color);
+        .error-alert {
+          color: var(--color-error);
           font-size: 0.875rem;
-          margin: var(--spacing-md) 0;
-          padding: 1rem 1.25rem;
-          background-color: rgba(239, 68, 68, 0.1);
-          border-radius: 8px;
+          margin-bottom: var(--space-6);
+          padding: var(--space-3);
+          background-color: var(--color-error-bg);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
         }
 
-        .submit-button {
-          width: 100%;
-          padding: 1rem 1.5rem;
-          background-color: var(--primary-color);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-size: 1.125rem;
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.75rem 1.5rem;
+          border-radius: var(--radius-lg);
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
-          margin-top: var(--spacing-lg);
+          border: none;
+          font-size: 1rem;
         }
 
-        .submit-button:hover:not(:disabled) {
-          background-color: var(--primary-hover);
+        .btn-primary {
+          background-color: var(--color-primary);
+          color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          background-color: var(--color-primary-hover);
           transform: translateY(-1px);
         }
 
-        .submit-button:disabled {
+        .btn:disabled {
           opacity: 0.7;
           cursor: not-allowed;
         }
+        
+        .w-full { width: 100%; }
 
-        .success-container {
+        .success-card {
           text-align: center;
-          padding: var(--spacing-xl) var(--spacing-lg);
+          padding: var(--space-10) var(--space-8);
         }
 
-        .success-icon {
+        .success-icon-wrapper {
           width: 64px;
           height: 64px;
-          background-color: var(--success-color);
-          color: white;
+          background-color: var(--color-success-bg);
+          color: var(--color-success);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 2rem;
-          margin: 0 auto var(--spacing-lg);
-          box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+          margin: 0 auto var(--space-6);
+          border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
-        .success-container h2 {
+        .success-title {
           font-size: 1.5rem;
-          font-weight: 600;
-          margin-bottom: var(--spacing-sm);
-          color: var(--text-color);
+          font-weight: 700;
+          margin: 0 0 var(--space-2) 0;
+          color: var(--color-text-main);
         }
 
-        .success-container p {
-          color: var(--text-secondary);
+        .success-message {
+          color: var(--color-text-secondary);
           font-size: 1.125rem;
-          margin-bottom: var(--spacing-xl);
+          margin: 0 0 var(--space-8) 0;
           line-height: 1.5;
         }
 
-        footer {
-          padding: var(--spacing-lg);
+        .footer {
+          padding: var(--space-8);
           text-align: center;
           font-size: 0.875rem;
-          color: var(--text-secondary);
+          color: var(--color-text-tertiary);
+          margin-top: auto;
         }
 
         .footer-content {
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: var(--spacing-sm);
+          gap: var(--space-3);
         }
 
         .footer-link {
-          color: var(--primary-color);
+          color: var(--color-primary);
           text-decoration: none;
+          font-weight: 500;
         }
 
         .footer-link:hover {
@@ -419,36 +458,33 @@ export default function RequestCongregation() {
         }
 
         .divider {
-          color: var(--border-color);
+          color: var(--color-border);
+        }
+        
+        .mr-1 { margin-right: var(--space-1); }
+        .mr-2 { margin-right: var(--space-2); }
+        .ml-2 { margin-left: var(--space-2); }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         @media (max-width: 640px) {
-          main {
-            padding: var(--spacing-md);
+          .main-content {
+            padding: var(--space-4);
           }
 
-          .content-container {
-            padding: var(--spacing-lg);
-            margin-top: var(--spacing-sm);
-            border-radius: 12px;
+          .form-card, .success-card {
+            padding: var(--space-6);
           }
 
-          h1 {
-            font-size: 1.875rem;
-          }
-
-          .description {
-            font-size: 1rem;
-          }
-
-          input {
-            font-size: 1rem;
-            padding: 0.875rem 1rem;
-          }
-
-          .submit-button {
-            font-size: 1rem;
-            padding: 0.875rem 1.25rem;
+          .title {
+            font-size: 1.75rem;
           }
         }
       `}</style>

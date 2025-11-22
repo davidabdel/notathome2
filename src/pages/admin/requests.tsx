@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { supabase } from '../../../supabase/config';
 import AdminLayout from '../../components/layouts/AdminLayout';
-import { FaCheck, FaTimes } from 'react-icons/fa';
+import { Check, X, ArrowLeft, AlertCircle, Clock, Mail, Key } from 'lucide-react';
 
 interface CongregationRequest {
   id: string;
@@ -25,17 +25,17 @@ export default function AdminRequestsPage() {
   useEffect(() => {
     const checkAdminAndFetchRequests = async () => {
       setLoading(true);
-      
+
       try {
         // Get current user
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (!user) {
           setError('You must be logged in to view this page');
           setLoading(false);
           return;
         }
-        
+
         // Check if user is admin
         const { data: userRoles, error: userRolesError } = await supabase
           .from('user_roles')
@@ -43,15 +43,15 @@ export default function AdminRequestsPage() {
           .eq('user_id', user.id)
           .eq('role', 'admin')
           .single();
-        
+
         if (userRolesError || !userRoles) {
           setError('You do not have permission to access this page');
           setLoading(false);
           return;
         }
-        
+
         setIsAdmin(true);
-        
+
         // Fetch congregation requests
         await fetchRequests();
       } catch (err) {
@@ -61,7 +61,7 @@ export default function AdminRequestsPage() {
         setLoading(false);
       }
     };
-    
+
     checkAdminAndFetchRequests();
   }, []);
 
@@ -69,24 +69,24 @@ export default function AdminRequestsPage() {
   const fetchRequests = async () => {
     try {
       console.log('Fetching congregation requests...');
-      
+
       // Use our server-side API endpoint to bypass RLS
       const response = await fetch('/api/admin/congregation-requests');
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${await response.text()}`);
       }
-      
+
       const data = await response.json();
-      
+
       console.log('Congregation requests data:', data);
-      
+
       // Normalize status values to lowercase for consistent UI handling
       const normalizedData = data?.map((request: any) => ({
         ...request,
         status: request.status.toLowerCase()
       })) || [];
-      
+
       setRequests(normalizedData);
     } catch (err) {
       console.error('Error fetching requests:', err);
@@ -98,10 +98,10 @@ export default function AdminRequestsPage() {
   const handleApprove = async (requestId: string) => {
     setProcessingId(requestId);
     setError('');
-    
+
     try {
       console.log(`Approving request ${requestId}...`);
-      
+
       // Use our server-side API endpoint to approve the request
       const response = await fetch('/api/admin/congregation-requests', {
         method: 'POST',
@@ -110,11 +110,11 @@ export default function AdminRequestsPage() {
         },
         body: JSON.stringify({ id: requestId, action: 'approve' }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`API error: ${response.status} ${errorText}`);
-        
+
         // Check if this is the contact_email column error
         if (errorText.includes('contact_email') && errorText.includes('column')) {
           setError(
@@ -133,10 +133,10 @@ export default function AdminRequestsPage() {
         }
         return;
       }
-      
+
       // Refresh the requests list
       await fetchRequests();
-      
+
       console.log(`Request ${requestId} approved successfully`);
     } catch (err) {
       console.error('Error approving request:', err);
@@ -149,7 +149,7 @@ export default function AdminRequestsPage() {
   // Direct fix function
   const fixDatabaseDirectly = async (requestId: string) => {
     setError('Fixing database schema...');
-    
+
     try {
       // Call the direct SQL fix endpoint
       const fixResponse = await fetch('/api/admin/direct-sql-fix', {
@@ -158,16 +158,16 @@ export default function AdminRequestsPage() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!fixResponse.ok) {
         const fixData = await fixResponse.json();
         setError(`Failed to fix database: ${fixData.error || 'Unknown error'}`);
         return;
       }
-      
+
       // If fix was successful, try approving the request again
       setError('Database fixed successfully. Approving request...');
-      
+
       // Wait a moment for the schema cache to reload
       setTimeout(async () => {
         await handleApprove(requestId);
@@ -176,14 +176,14 @@ export default function AdminRequestsPage() {
       setError(`Error fixing database: ${err.message}`);
     }
   };
-  
+
   // Handle rejecting a request
   const handleReject = async (requestId: string) => {
     setProcessingId(requestId);
-    
+
     try {
       console.log(`Rejecting request ${requestId}...`);
-      
+
       // Use our server-side API endpoint to reject the request
       const response = await fetch('/api/admin/congregation-requests', {
         method: 'POST',
@@ -192,14 +192,14 @@ export default function AdminRequestsPage() {
         },
         body: JSON.stringify({ id: requestId, action: 'reject' }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${await response.text()}`);
       }
-      
+
       // Refresh the requests list
       await fetchRequests();
-      
+
       console.log(`Request ${requestId} rejected successfully`);
     } catch (err) {
       console.error('Error rejecting request:', err);
@@ -219,68 +219,86 @@ export default function AdminRequestsPage() {
 
       <div className="content-container">
         <div className="header">
-          <Link href="/admin" className="back-link">← Admin Dashboard</Link>
-          <h1>Congregation Requests</h1>
+          <Link href="/admin" className="back-link">
+            <ArrowLeft size={16} className="mr-2" />
+            Admin Dashboard
+          </Link>
+          <h1 className="page-title">Congregation Requests</h1>
           <p className="description">Approve or reject congregation registration requests</p>
         </div>
 
         {loading ? (
           <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Loading requests...</p>
+            <div className="spinner"></div>
+            <p className="loading-text">Loading requests...</p>
           </div>
         ) : error ? (
-          <div className="error-message">{error}</div>
+          <div className="error-alert">{error}</div>
         ) : !isAdmin ? (
-          <div className="error-message">You do not have permission to access this page</div>
+          <div className="error-alert">You do not have permission to access this page</div>
         ) : (
           <div className="requests-container">
             {requests.length === 0 ? (
               <div className="empty-state">
-                <p>No congregation requests found</p>
+                <div className="empty-icon-wrapper">
+                  <AlertCircle size={32} />
+                </div>
+                <h3 className="empty-title">No Requests</h3>
+                <p className="empty-description">No congregation requests found</p>
               </div>
             ) : (
               <div className="requests-list">
                 {requests.map(request => (
                   <div key={request.id} className="request-card">
                     <div className="request-header">
-                      <h2>{request.name}</h2>
+                      <h2 className="request-title">{request.name}</h2>
                       <span className={`status-badge ${request.status}`}>
                         {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                       </span>
                     </div>
-                    
+
                     <div className="request-details">
                       <div className="detail-item">
+                        <Mail size={16} className="detail-icon" />
                         <span className="label">Email:</span>
                         <span className="value">{request.contact_email}</span>
                       </div>
                       <div className="detail-item">
+                        <Key size={16} className="detail-icon" />
                         <span className="label">PIN Code:</span>
-                        <span className="value">{request.pin_code}</span>
+                        <span className="value font-mono">{request.pin_code}</span>
                       </div>
                       <div className="detail-item">
+                        <Clock size={16} className="detail-icon" />
                         <span className="label">Requested:</span>
                         <span className="value">{new Date(request.created_at).toLocaleString()}</span>
                       </div>
                     </div>
-                    
+
                     {request.status === 'pending' && (
                       <div className="request-actions">
-                        <button 
+                        <button
                           onClick={() => handleApprove(request.id)}
                           disabled={processingId === request.id}
-                          className="approve-button"
+                          className="btn btn-success"
                         >
-                          <FaCheck className="icon" />
+                          {processingId === request.id ? (
+                            <div className="spinner-sm"></div>
+                          ) : (
+                            <Check size={18} className="mr-2" />
+                          )}
                           {processingId === request.id ? 'Processing...' : 'Approve'}
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleReject(request.id)}
                           disabled={processingId === request.id}
-                          className="reject-button"
+                          className="btn btn-danger"
                         >
-                          <FaTimes className="icon" />
+                          {processingId === request.id ? (
+                            <div className="spinner-sm"></div>
+                          ) : (
+                            <X size={18} className="mr-2" />
+                          )}
                           {processingId === request.id ? 'Processing...' : 'Reject'}
                         </button>
                       </div>
@@ -294,29 +312,116 @@ export default function AdminRequestsPage() {
       </div>
 
       <style jsx>{`
+        .content-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: var(--space-6);
+        }
+        
+        .header {
+          margin-bottom: var(--space-8);
+        }
+        
+        .back-link {
+          display: inline-flex;
+          align-items: center;
+          color: var(--color-text-secondary);
+          text-decoration: none;
+          margin-bottom: var(--space-4);
+          font-weight: 500;
+          transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+          color: var(--color-primary);
+        }
+        
+        .page-title {
+          font-size: 2rem;
+          font-weight: 800;
+          color: var(--color-text-main);
+          margin: 0 0 var(--space-2) 0;
+          letter-spacing: -0.025em;
+        }
+        
+        .description {
+          color: var(--color-text-secondary);
+          font-size: 1.125rem;
+        }
+        
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-12) 0;
+          min-height: 400px;
+        }
+        
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid rgba(37, 99, 235, 0.1);
+          border-radius: 50%;
+          border-top-color: var(--color-primary);
+          animation: spin 1s linear infinite;
+          margin-bottom: var(--space-4);
+        }
+        
+        .spinner-sm {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s linear infinite;
+          margin-right: var(--space-2);
+        }
+        
+        .loading-text {
+          font-weight: 600;
+          color: var(--color-text-secondary);
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .error-alert {
+          background-color: var(--color-error-bg);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          color: var(--color-error);
+          padding: var(--space-4);
+          border-radius: var(--radius-md);
+          margin-bottom: var(--space-6);
+        }
+        
         .error-message-with-fix {
-          background-color: #fee2e2;
-          color: #b91c1c;
-          padding: 1rem;
-          border-radius: 0.375rem;
-          margin-bottom: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
         }
         
         .fix-options {
           display: flex;
-          gap: 1rem;
-          margin-top: 0.5rem;
+          gap: var(--space-4);
+          margin-top: var(--space-2);
+        }
+        
+        .fix-link, .direct-fix-button {
+          display: inline-flex;
+          align-items: center;
+          padding: var(--space-2) var(--space-4);
+          border-radius: var(--radius-md);
+          font-weight: 500;
+          font-size: 0.875rem;
+          transition: all 0.2s;
+          text-decoration: none;
+          border: none;
+          cursor: pointer;
         }
         
         .fix-link {
-          display: inline-block;
-          padding: 0.5rem 1rem;
-          background-color: #ef4444;
+          background-color: var(--color-error);
           color: white;
-          border-radius: 0.25rem;
-          text-decoration: none;
-          font-weight: 500;
-          transition: background-color 0.2s;
         }
         
         .fix-link:hover {
@@ -324,20 +429,192 @@ export default function AdminRequestsPage() {
         }
         
         .direct-fix-button {
-          padding: 0.5rem 1rem;
-          background-color: #3b82f6;
+          background-color: var(--color-primary);
           color: white;
-          border: none;
-          border-radius: 0.25rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
         }
         
         .direct-fix-button:hover {
-          background-color: #2563eb;
+          background-color: var(--color-primary-hover);
+        }
+        
+        .requests-list {
+          display: grid;
+          gap: var(--space-6);
+        }
+        
+        .request-card {
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-lg);
+          padding: var(--space-6);
+          box-shadow: var(--shadow-sm);
+          border: 1px solid var(--color-border);
+          transition: all 0.2s ease;
+        }
+        
+        .request-card:hover {
+          box-shadow: var(--shadow-md);
+          border-color: var(--color-primary);
+        }
+        
+        .request-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-4);
+          border-bottom: 1px solid var(--color-border);
+          padding-bottom: var(--space-4);
+        }
+        
+        .request-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--color-text-main);
+          margin: 0;
+        }
+        
+        .status-badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 9999px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        
+        .status-badge.pending {
+          background-color: #fef3c7;
+          color: #92400e;
+          border: 1px solid #fcd34d;
+        }
+        
+        .status-badge.approved {
+          background-color: var(--color-success-bg);
+          color: var(--color-success);
+          border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .status-badge.rejected {
+          background-color: var(--color-error-bg);
+          color: var(--color-error);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .request-details {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: var(--space-4);
+          margin-bottom: var(--space-6);
+        }
+        
+        .detail-item {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+        }
+        
+        .detail-icon {
+          color: var(--color-text-tertiary);
+        }
+        
+        .label {
+          font-weight: 500;
+          color: var(--color-text-secondary);
+          font-size: 0.875rem;
+        }
+        
+        .value {
+          color: var(--color-text-main);
+          font-weight: 500;
+        }
+        
+        .font-mono {
+          font-family: monospace;
+          letter-spacing: 0.05em;
+        }
+        
+        .request-actions {
+          display: flex;
+          gap: var(--space-4);
+          justify-content: flex-end;
+          border-top: 1px solid var(--color-border);
+          padding-top: var(--space-4);
+        }
+        
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.5rem 1rem;
+          border-radius: var(--radius-md);
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+          font-size: 0.875rem;
+        }
+        
+        .btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        
+        .btn-success {
+          background-color: var(--color-success);
+          color: white;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+          background-color: #059669;
+        }
+        
+        .btn-danger {
+          background-color: var(--color-error);
+          color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+          background-color: #dc2626;
+        }
+        
+        .mr-2 { margin-right: var(--space-2); }
+        
+        .empty-state {
+          background-color: var(--color-bg-card);
+          border-radius: var(--radius-lg);
+          padding: var(--space-12);
+          text-align: center;
+          color: var(--color-text-secondary);
+          border: 1px dashed var(--color-border);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .empty-icon-wrapper {
+          width: 64px;
+          height: 64px;
+          background-color: var(--color-bg-input);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: var(--space-4);
+          color: var(--color-text-tertiary);
+        }
+        
+        .empty-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--color-text-main);
+          margin: 0 0 var(--space-2) 0;
+        }
+        
+        .empty-description {
+          margin: 0;
+          color: var(--color-text-secondary);
         }
       `}</style>
     </AdminLayout>
   );
-} 
+}

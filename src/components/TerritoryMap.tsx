@@ -4,11 +4,12 @@ import { supabase } from "../utils/supabaseClient";
 
 interface TerritoryMapProps {
   mapNumber: number;
+  onMapDetailsLoaded?: (details: { blocks: number }) => void;
 }
 
 // Remove the MAP_URLS mapping as we'll fetch directly from the database
 
-const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
+const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber, onMapDetailsLoaded }) => {
   const router = useRouter();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -21,9 +22,9 @@ const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
     setError(null);
     setLoading(true);
     setMapDescription(null);
-    
+
     console.log(`Fetching Territory Map ${mapNumber}`);
-    
+
     const fetchMapImage = async () => {
       try {
         // Get session ID from URL
@@ -66,52 +67,50 @@ const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
 
         console.log(`Found ${maps.length} maps for congregation ${congregationId}`);
         console.log("Available maps:", maps);
-        
+
         // Look for a map with name "Territory Map X"
         const exactMapName = `Territory Map ${mapNumber}`;
         const matchingMap = maps.find(map => map.name === exactMapName);
-        
+
+        const handleMapFound = (map: any) => {
+          if (map.image_url) {
+            setImageSrc(map.image_url);
+          }
+          if (map.description) {
+            setMapDescription(map.description);
+          }
+          if (onMapDetailsLoaded && map.blocks) {
+            onMapDetailsLoaded({ blocks: map.blocks });
+          } else if (onMapDetailsLoaded) {
+            // Default to 10 if no blocks specified
+            onMapDetailsLoaded({ blocks: 10 });
+          }
+          setLoading(false);
+        };
+
         if (matchingMap) {
           console.log(`Found exact match for "${exactMapName}":`, matchingMap);
-          if (matchingMap.image_url) {
-            setImageSrc(matchingMap.image_url);
-          }
-          if (matchingMap.description) {
-            setMapDescription(matchingMap.description);
-          }
-          setLoading(false);
+          handleMapFound(matchingMap);
           return;
         }
-        
+
         // If no exact match by name, try to find by map_number
         const mapByNumber = maps.find(map => Number(map.map_number) === Number(mapNumber));
-        
+
         if (mapByNumber) {
           console.log(`Found map by number ${mapNumber}:`, mapByNumber);
-          if (mapByNumber.image_url) {
-            setImageSrc(mapByNumber.image_url);
-          }
-          if (mapByNumber.description) {
-            setMapDescription(mapByNumber.description);
-          }
-          setLoading(false);
+          handleMapFound(mapByNumber);
           return;
         }
-        
+
         // If still no match, check if any map has this number in its name
-        const mapWithNumberInName = maps.find(map => 
+        const mapWithNumberInName = maps.find(map =>
           map.name && map.name.includes(`${mapNumber}`)
         );
-        
+
         if (mapWithNumberInName) {
           console.log(`Found map with "${mapNumber}" in name:`, mapWithNumberInName);
-          if (mapWithNumberInName.image_url) {
-            setImageSrc(mapWithNumberInName.image_url);
-          }
-          if (mapWithNumberInName.description) {
-            setMapDescription(mapWithNumberInName.description);
-          }
-          setLoading(false);
+          handleMapFound(mapWithNumberInName);
           return;
         }
 
@@ -123,7 +122,7 @@ const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
             congregationId,
             availableMaps: maps,
           });
-          
+
           setError(`Could not find Territory Map ${mapNumber}. Please check the map configuration.`);
           setLoading(false);
         } else {
@@ -250,7 +249,7 @@ const TerritoryMap: React.FC<TerritoryMapProps> = ({ mapNumber }) => {
         ) : (
           <p className="no-image-text">No image available</p>
         )}
-        
+
         {mapDescription && (
           <div className="map-description">
             <div className="description-text">{mapDescription}</div>

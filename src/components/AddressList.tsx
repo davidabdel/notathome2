@@ -31,12 +31,14 @@ interface AddressListProps {
   sessionId: string;
   selectedBlock: number | null;
   onAddressUpdated?: () => void;
+  refreshTrigger?: number;
 }
 
-const AddressList: React.FC<AddressListProps> = ({ 
-  sessionId, 
+const AddressList: React.FC<AddressListProps> = ({
+  sessionId,
   selectedBlock,
-  onAddressUpdated
+  onAddressUpdated,
+  refreshTrigger = 0
 }) => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,27 +57,27 @@ const AddressList: React.FC<AddressListProps> = ({
   const fetchAddresses = async () => {
     try {
       setLoading(true);
-      
+
       // Use supabaseClient instead of supabase
       const { data, error: fetchError } = await supabase
         .from('not_at_home_addresses')
         .select('*')
         .eq('session_id', sessionId)
         .order('created_at', { ascending: true });
-      
+
       if (fetchError) {
         console.error('Error fetching addresses:', fetchError);
         setError('Failed to load addresses. Please try again.');
         return;
       }
-      
+
       // Convert null addresses to empty strings and ensure proper typing
       const validAddresses: Address[] = (data || []).map((dbAddr: DbAddress) => ({
         ...dbAddr,
         address: dbAddr.address || '',
         block_number: dbAddr.block_number || ''
       }));
-      
+
       setAddresses(validAddresses);
     } catch (err) {
       console.error('Error in fetchAddresses:', err);
@@ -84,37 +86,37 @@ const AddressList: React.FC<AddressListProps> = ({
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchAddresses();
-  }, [sessionId, selectedBlock]);
-  
+  }, [sessionId, selectedBlock, refreshTrigger]);
+
   const handleDelete = async () => {
     if (!editingId) return;
 
     try {
       setError(null);
       setDetailedError(null);
-      
+
       const { error: deleteError } = await supabase
         .from('not_at_home_addresses')
         .delete()
         .eq('id', editingId);
-      
+
       if (deleteError) {
         setError('Error deleting address');
         setDetailedError(deleteError.message);
         console.error('Delete error:', deleteError);
         return;
       }
-      
+
       // Update the local state
       setAddresses(addresses.filter(addr => addr.id !== editingId));
-      
+
       // Close the modal
       setShowEditModal(false);
       setEditingId(null);
-      
+
       // Notify parent component if needed
       if (onAddressUpdated) {
         onAddressUpdated();
@@ -141,20 +143,20 @@ const AddressList: React.FC<AddressListProps> = ({
       if (typeof address !== 'string') {
         // Extract the address string
         const addressStr = address.address;
-        
+
         // Set block number if it exists
         if (address.block_number) {
           fields.block_number = address.block_number;
         }
-        
+
         // Process the address string
         const parts = addressStr.trim().split(',').map(part => part.trim());
-        
+
         // Rest of the parsing logic...
         if (parts.length >= 1) {
           // First part typically contains house number and street
           const streetParts = parts[0].split(' ');
-          
+
           if (streetParts.length >= 2) {
             // First part is likely the house number
             fields.house_number = streetParts[0];
@@ -169,17 +171,17 @@ const AddressList: React.FC<AddressListProps> = ({
         if (parts.length >= 2) {
           fields.suburb = parts[1];
         }
-        
+
         return fields;
       }
-      
+
       // If address is a string
       const parts = address.trim().split(',').map(part => part.trim());
 
       if (parts.length >= 1) {
         // First part typically contains house number and street
         const streetParts = parts[0].split(' ');
-        
+
         if (streetParts.length >= 2) {
           // First part is likely the house number
           fields.house_number = streetParts[0];
@@ -200,24 +202,24 @@ const AddressList: React.FC<AddressListProps> = ({
 
     return fields;
   };
-  
+
   const startEditing = (address: Address) => {
     setEditingId(address.id);
-    
+
     // Parse the address into fields
     const parsedFields = parseAddress(address);
-    
+
     setAddressFields(parsedFields);
     setShowEditModal(true);
   };
-  
+
   const handleInputChange = (field: keyof AddressFields, value: string) => {
     setAddressFields(prev => ({
       ...prev,
       [field]: value
     }));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId) return;
@@ -235,22 +237,22 @@ const AddressList: React.FC<AddressListProps> = ({
         setError('Address cannot be empty');
         return;
       }
-      
+
       const { error: updateError } = await supabase
         .from('not_at_home_addresses')
-        .update({ 
+        .update({
           address: formattedAddress.trim(),
           block_number: addressFields.block_number
         })
         .eq('id', editingId);
-      
+
       if (updateError) {
         setError('Error updating address');
         setDetailedError(updateError.message);
         console.error('Update error:', updateError);
         return;
       }
-      
+
       // Update the local state with type guard
       const updatedAddresses = addresses.map(addr => {
         if (addr.id === editingId) {
@@ -263,9 +265,9 @@ const AddressList: React.FC<AddressListProps> = ({
         }
         return addr;
       });
-      
+
       setAddresses(updatedAddresses);
-      
+
       // Reset editing state and close modal
       setEditingId(null);
       setShowEditModal(false);
@@ -276,7 +278,7 @@ const AddressList: React.FC<AddressListProps> = ({
         street_name: '',
         suburb: '',
       });
-      
+
       // Notify parent component if needed
       if (onAddressUpdated) {
         onAddressUpdated();
@@ -306,7 +308,7 @@ const AddressList: React.FC<AddressListProps> = ({
   if (loading) {
     return <div className="text-center py-4">Loading addresses...</div>;
   }
-  
+
   return (
     <div className="addresses-container">
       {error && <div className="error-message">{error}</div>}
@@ -319,7 +321,7 @@ const AddressList: React.FC<AddressListProps> = ({
           <div key={address.id} className="address-row">
             <div className="address-cell">{formatAddress(address)}</div>
             <div className="actions-cell">
-              <button 
+              <button
                 onClick={() => startEditing(address)}
                 className="edit-button"
                 aria-label="Edit address"
@@ -351,7 +353,7 @@ const AddressList: React.FC<AddressListProps> = ({
                   placeholder="1"
                 />
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="unit-number">Unit Number</label>
@@ -363,7 +365,7 @@ const AddressList: React.FC<AddressListProps> = ({
                     placeholder="Optional"
                   />
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="house-number">House Number</label>
                   <input
@@ -375,7 +377,7 @@ const AddressList: React.FC<AddressListProps> = ({
                   />
                 </div>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="street-name">Street Name</label>
                 <input
@@ -386,7 +388,7 @@ const AddressList: React.FC<AddressListProps> = ({
                   placeholder="Dr Near Venenzia St"
                 />
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="suburb">Suburb</label>
                 <input
@@ -397,25 +399,25 @@ const AddressList: React.FC<AddressListProps> = ({
                   placeholder="Prestons"
                 />
               </div>
-              
+
               <div className="modal-actions">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="delete-button"
                   onClick={handleDelete}
                 >
                   Delete
                 </button>
                 <div className="right-actions">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="cancel-button"
                     onClick={closeModal}
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="save-button"
                   >
                     Save Changes
@@ -648,4 +650,4 @@ const AddressList: React.FC<AddressListProps> = ({
   );
 };
 
-export default AddressList; 
+export default AddressList;
