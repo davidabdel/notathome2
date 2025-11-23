@@ -76,7 +76,8 @@ export default async function handler(
 
       // Check if we need to send a notification
       // @ts-ignore - Supabase types might not be fully up to date with the join
-      const congregation = session.congregations;
+      const rawCongregation = session.congregations;
+      const congregation = Array.isArray(rawCongregation) ? rawCongregation[0] : rawCongregation;
 
       if (congregation && congregation.notification_email) {
         console.log(`Sending notification to ${congregation.notification_email}`);
