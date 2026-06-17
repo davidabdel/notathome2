@@ -47,7 +47,7 @@ export default function SessionPage() {
       setSession(s);
 
       // Load map data
-      const mapsRes = await fetch(`/api/maps?congregation_id=${s.congregation_id}`);
+      const mapsRes = await fetch(`/api/maps/public?congregation_id=${s.congregation_id}`);
       if (mapsRes.ok) {
         const maps: MapData[] = await mapsRes.json();
         const m = maps.find(x => x.map_number === s.map_number);

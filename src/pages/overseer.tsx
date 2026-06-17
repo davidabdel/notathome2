@@ -30,7 +30,7 @@ export default function Overseer() {
   };
 
   const loadMaps = async (cid: string) => {
-    const res = await fetch(`/api/maps?congregation_id=${cid}`);
+    const res = await fetch(`/api/maps/public?congregation_id=${cid}`);
     if (res.ok) setMaps(await res.json());
   };
 
