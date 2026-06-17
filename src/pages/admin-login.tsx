@@ -8,6 +8,22 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    await fetch('/api/admin-auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail.trim() }),
+    });
+    setForgotSent(true);
+    setForgotLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,18 +56,42 @@ export default function AdminLogin() {
           <h2 style={styles.title}>Admin Login</h2>
           <p style={styles.sub}>Congregation admin or super admin access</p>
 
-          <form onSubmit={handleSubmit}>
-            <div style={styles.field}>
-              <label style={styles.label}>Email</label>
-              <input style={styles.input} type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="username" />
-            </div>
-            <div style={styles.field}>
-              <label style={styles.label}>Password</label>
-              <input style={styles.input} type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
-            </div>
-            {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 8 }}>{error}</p>}
-            <button style={styles.btn} type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign In'}</button>
-          </form>
+          {forgotMode ? (
+            forgotSent ? (
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ color: '#16a34a', marginBottom: 20 }}>✓ If that email exists, a reset link has been sent.</p>
+                <button onClick={() => { setForgotMode(false); setForgotSent(false); }} style={{ ...styles.btn, background: '#6b7280' }}>Back to Login</button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgot}>
+                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>Enter your admin email and we'll send a reset link.</p>
+                <div style={styles.field}>
+                  <label style={styles.label}>Email</label>
+                  <input style={styles.input} type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required autoFocus />
+                </div>
+                <button style={styles.btn} type="submit" disabled={forgotLoading}>{forgotLoading ? 'Sending…' : 'Send Reset Link'}</button>
+                <p style={{ textAlign: 'center', marginTop: 14 }}>
+                  <button type="button" onClick={() => setForgotMode(false)} style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: 13 }}>Back to login</button>
+                </p>
+              </form>
+            )
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div style={styles.field}>
+                <label style={styles.label}>Email</label>
+                <input style={styles.input} type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="username" />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Password</label>
+                <input style={styles.input} type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
+              </div>
+              {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 8 }}>{error}</p>}
+              <button style={styles.btn} type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign In'}</button>
+              <p style={{ textAlign: 'center', marginTop: 14 }}>
+                <button type="button" onClick={() => setForgotMode(true)} style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: 13 }}>Forgot password?</button>
+              </p>
+            </form>
+          )}
         </div>
       </div>
     </>

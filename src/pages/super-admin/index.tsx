@@ -8,6 +8,7 @@ interface Congregation {
   map_count: number; admin_count: number; active_sessions: number;
 }
 interface Request { id: string; name: string; contact_email: string; created_at: string; }
+interface CongAdmin { id: string; email: string; }
 
 export default function SuperAdmin() {
   const router = useRouter();
@@ -22,6 +23,10 @@ export default function SuperAdmin() {
   const [editForm, setEditForm] = useState({ name: '', pin_code: '', status: 'active', contact_email: '', notification_email: '' });
   const [approvePIN, setApprovePIN] = useState('');
   const [search, setSearch] = useState('');
+  const [resetModal, setResetModal] = useState<{ congregation: Congregation; admins: CongAdmin[] } | null>(null);
+  const [resetTarget, setResetTarget] = useState<CongAdmin | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetDone, setResetDone] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -84,6 +89,25 @@ export default function SuperAdmin() {
       body: JSON.stringify({ id, action: 'reject' }),
     });
     loadAll();
+  };
+
+  const openResetModal = async (c: Congregation) => {
+    const res = await fetch(`/api/congregation-admin/admins?congregation_id=${c.id}`);
+    const admins: CongAdmin[] = res.ok ? await res.json() : [];
+    setResetModal({ congregation: c, admins });
+    setResetTarget(null);
+    setResetPassword('');
+    setResetDone(false);
+  };
+
+  const doResetPassword = async () => {
+    if (!resetTarget) return;
+    const res = await fetch('/api/super-admin/reset-admin-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_id: resetTarget.id, password: resetPassword }),
+    });
+    if (res.ok) { setResetDone(true); setResetPassword(''); }
+    else { const d = await res.json(); alert(d.error); }
   };
 
   const logout = async () => {
@@ -153,6 +177,7 @@ export default function SuperAdmin() {
                         <td style={{ ...styles.td, textAlign: 'center' }}>{c.active_sessions > 0 ? <span style={{ color: '#10b981', fontWeight: 700 }}>{c.active_sessions}</span> : 0}</td>
                         <td style={styles.td}>
                           <button style={styles.editBtn} onClick={() => { setEditModal(c); setEditForm({ name: c.name, pin_code: '', status: c.status, contact_email: c.contact_email || '', notification_email: c.notification_email || '' }); }}>Edit</button>
+                          <button style={{ ...styles.editBtn, color: '#2563eb', background: '#eff6ff', marginLeft: 6 }} onClick={() => openResetModal(c)}>Admins</button>
                           <button style={{ ...styles.editBtn, color: '#dc2626', background: '#fef2f2', marginLeft: 6 }} onClick={() => deleteCongregation(c.id, c.name)}>Del</button>
                         </td>
                       </tr>
@@ -221,6 +246,38 @@ export default function SuperAdmin() {
               <button style={styles.cancelBtn} onClick={() => setEditModal(null)}>Cancel</button>
               <button style={styles.confirmBtn} onClick={updateCongregation}>Save</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {resetModal && (
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h3 style={{ margin: '0 0 4px' }}>Admins — {resetModal.congregation.name}</h3>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>Select an admin to reset their password.</p>
+            {resetModal.admins.length === 0 && <p style={{ color: '#9ca3af', fontSize: 14 }}>No admins set up for this congregation.</p>}
+            {resetModal.admins.map(a => (
+              <button key={a.id} onClick={() => { setResetTarget(a); setResetDone(false); setResetPassword(''); }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', marginBottom: 8, borderRadius: 8, border: `1.5px solid ${resetTarget?.id === a.id ? '#2563eb' : '#e5e7eb'}`, background: resetTarget?.id === a.id ? '#eff6ff' : '#fff', cursor: 'pointer', fontSize: 14 }}>
+                {a.email}
+              </button>
+            ))}
+            {resetTarget && (
+              <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+                {resetDone ? (
+                  <p style={{ color: '#16a34a', fontWeight: 600 }}>✓ Password updated for {resetTarget.email}</p>
+                ) : (
+                  <>
+                    <label style={styles.lbl}>New Password for {resetTarget.email}</label>
+                    <input style={{ ...styles.inp, marginBottom: 12 }} type="password" placeholder="Min. 8 characters" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
+                    <button style={{ ...styles.confirmBtn, background: '#2563eb', width: '100%', padding: '11px' }} onClick={doResetPassword} disabled={resetPassword.length < 8}>
+                      Reset Password
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <button style={{ ...styles.cancelBtn, marginTop: 16, width: '100%' }} onClick={() => setResetModal(null)}>Close</button>
           </div>
         </div>
       )}
