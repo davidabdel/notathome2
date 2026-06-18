@@ -9,7 +9,17 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showInstall, setShowInstall] = useState(false);
+  const [isIos, setIsIos] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
+  const deferredPromptRef = useRef<any>(null);
+
+  // Capture Android/Chrome install prompt
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); deferredPromptRef.current = e; };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   // Restore saved congregation from localStorage
   useEffect(() => {
@@ -20,6 +30,7 @@ export default function Home() {
         if (savedName) router.push('/role-selection');
       } catch {}
     }
+    setIsIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
   }, [router]);
 
   const handleNameChange = (val: string) => {
@@ -45,12 +56,34 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Login failed'); return; }
       localStorage.setItem('nah_congregation', JSON.stringify({ id: data.id, name: data.name }));
-      router.push('/role-selection');
+      // Show install prompt if not already installed and not previously dismissed
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      const dismissed = localStorage.getItem('nah_install_dismissed');
+      if (!isStandalone && !dismissed) {
+        setShowInstall(true);
+      } else {
+        router.push('/role-selection');
+      }
     } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInstall = async () => {
+    if (deferredPromptRef.current) {
+      deferredPromptRef.current.prompt();
+      await deferredPromptRef.current.userChoice;
+      deferredPromptRef.current = null;
+    }
+    router.push('/role-selection');
+  };
+
+  const dismissInstall = () => {
+    localStorage.setItem('nah_install_dismissed', '1');
+    setShowInstall(false);
+    router.push('/role-selection');
   };
 
   return (
@@ -135,6 +168,43 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {showInstall && (
+        <div style={styles.overlay}>
+          <div style={styles.installModal}>
+            <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 12 }}>📲</div>
+            <h2 style={{ textAlign: 'center', fontSize: 20, fontWeight: 700, margin: '0 0 8px', color: '#1e293b' }}>
+              Add to Home Screen
+            </h2>
+            <p style={{ textAlign: 'center', color: '#6b7280', fontSize: 14, marginBottom: 20 }}>
+              Install the Not At Home app so you can open it quickly without entering your congregation details each time.
+            </p>
+
+            {isIos ? (
+              <div style={{ background: '#f0f4ff', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+                <p style={{ fontSize: 14, color: '#374151', margin: '0 0 10px', fontWeight: 600 }}>To install on iPhone/iPad:</p>
+                <p style={{ fontSize: 14, color: '#374151', margin: '0 0 8px' }}>1. Tap the <strong>Share</strong> button <span style={{ fontSize: 16 }}>⎋</span> at the bottom of your browser</p>
+                <p style={{ fontSize: 14, color: '#374151', margin: '0 0 8px' }}>2. Scroll down and tap <strong>"Add to Home Screen"</strong></p>
+                <p style={{ fontSize: 14, color: '#374151', margin: 0 }}>3. Tap <strong>"Add"</strong> in the top right</p>
+              </div>
+            ) : deferredPromptRef.current ? (
+              <button style={{ ...styles.btn, marginBottom: 12 }} onClick={handleInstall}>
+                Install App
+              </button>
+            ) : (
+              <div style={{ background: '#f0f4ff', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+                <p style={{ fontSize: 14, color: '#374151', margin: 0 }}>
+                  To install: tap the menu in your browser (⋮) and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.
+                </p>
+              </div>
+            )}
+
+            <button style={styles.skipBtn} onClick={dismissInstall}>
+              Skip — Continue to App
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -157,4 +227,7 @@ const styles: Record<string, React.CSSProperties> = {
   btn: { width: '100%', padding: '13px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer', marginTop: 4 },
   link: { color: '#2563eb', fontWeight: 600, fontSize: 14, textDecoration: 'none' },
   adminBtn: { width: '100%', padding: '12px', background: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: 10, fontSize: 14, cursor: 'pointer' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 },
+  installModal: { background: '#fff', borderRadius: '20px 20px 0 0', padding: '28px 24px 40px', width: '100%', maxWidth: 500 },
+  skipBtn: { width: '100%', padding: '12px', background: '#f3f4f6', border: 'none', borderRadius: 10, fontSize: 15, color: '#6b7280', cursor: 'pointer' },
 };
