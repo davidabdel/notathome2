@@ -11,8 +11,11 @@ export default function Home() {
   const [error, setError] = useState('');
   const [showInstall, setShowInstall] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
   const deferredPromptRef = useRef<any>(null);
+
+  const SPLASH_URL = 'https://pub-daf8c14077c6451eb1877ef9bf624ab7.r2.dev/splash/winter-update.mp4';
 
   // Capture Android/Chrome install prompt
   useEffect(() => {
@@ -31,6 +34,8 @@ export default function Home() {
       } catch {}
     }
     setIsIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
+    // Show splash once ever
+    if (!localStorage.getItem('nah_splash_winter')) setShowSplash(true);
   }, [router]);
 
   const handleNameChange = (val: string) => {
@@ -168,6 +173,23 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {showSplash && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => { localStorage.setItem('nah_splash_winter', '1'); setShowSplash(false); }}>
+          <video
+            src={SPLASH_URL}
+            autoPlay
+            playsInline
+            muted={false}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onEnded={() => { localStorage.setItem('nah_splash_winter', '1'); setShowSplash(false); }}
+          />
+          <div style={{ position: 'absolute', bottom: 32, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+            Tap to skip
+          </div>
+        </div>
+      )}
 
       {showInstall && (
         <div style={styles.overlay}>
