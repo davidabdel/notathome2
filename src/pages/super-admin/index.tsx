@@ -27,6 +27,9 @@ export default function SuperAdmin() {
   const [resetTarget, setResetTarget] = useState<CongAdmin | null>(null);
   const [resetPassword, setResetPassword] = useState('');
   const [resetDone, setResetDone] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [addAdminError, setAddAdminError] = useState('');
 
   useEffect(() => {
     const init = async () => {
@@ -98,6 +101,35 @@ export default function SuperAdmin() {
     setResetTarget(null);
     setResetPassword('');
     setResetDone(false);
+  };
+
+  const addAdmin = async () => {
+    if (!resetModal) return;
+    setAddAdminError('');
+    const res = await fetch('/api/congregation-admin/admins?congregation_id=' + resetModal.congregation.id, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newAdminEmail.trim(), password: newAdminPassword }),
+    });
+    const d = await res.json();
+    if (!res.ok) { setAddAdminError(d.error || 'Failed'); return; }
+    setNewAdminEmail(''); setNewAdminPassword('');
+    const updated = await fetch(`/api/congregation-admin/admins?congregation_id=${resetModal.congregation.id}`);
+    const admins = updated.ok ? await updated.json() : resetModal.admins;
+    setResetModal({ ...resetModal, admins });
+    loadAll();
+  };
+
+  const removeAdmin = async (adminId: string) => {
+    if (!resetModal) return;
+    if (!confirm('Remove this admin?')) return;
+    await fetch('/api/congregation-admin/admins', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_id: adminId }),
+    });
+    const updated = await fetch(`/api/congregation-admin/admins?congregation_id=${resetModal.congregation.id}`);
+    const admins = updated.ok ? await updated.json() : [];
+    setResetModal({ ...resetModal, admins });
+    loadAll();
   };
 
   const doResetPassword = async () => {
@@ -254,30 +286,44 @@ export default function SuperAdmin() {
         <div style={styles.overlay}>
           <div style={styles.modal}>
             <h3 style={{ margin: '0 0 4px' }}>Admins — {resetModal.congregation.name}</h3>
-            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>Select an admin to reset their password.</p>
-            {resetModal.admins.length === 0 && <p style={{ color: '#9ca3af', fontSize: 14 }}>No admins set up for this congregation.</p>}
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 12 }}>{resetModal.admins.length}/3 admins</p>
+
+            {resetModal.admins.length === 0 && <p style={{ color: '#9ca3af', fontSize: 14, marginBottom: 12 }}>No admins yet.</p>}
             {resetModal.admins.map(a => (
-              <button key={a.id} onClick={() => { setResetTarget(a); setResetDone(false); setResetPassword(''); }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', marginBottom: 8, borderRadius: 8, border: `1.5px solid ${resetTarget?.id === a.id ? '#2563eb' : '#e5e7eb'}`, background: resetTarget?.id === a.id ? '#eff6ff' : '#fff', cursor: 'pointer', fontSize: 14 }}>
-                {a.email}
-              </button>
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <button onClick={() => { setResetTarget(a); setResetDone(false); setResetPassword(''); }}
+                  style={{ flex: 1, textAlign: 'left', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${resetTarget?.id === a.id ? '#2563eb' : '#e5e7eb'}`, background: resetTarget?.id === a.id ? '#eff6ff' : '#fff', cursor: 'pointer', fontSize: 14 }}>
+                  {a.email}
+                </button>
+                <button onClick={() => removeAdmin(a.id)} style={{ padding: '8px 10px', background: '#fef2f2', border: 'none', borderRadius: 8, color: '#dc2626', cursor: 'pointer', fontSize: 13 }}>✕</button>
+              </div>
             ))}
+
             {resetTarget && (
-              <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+              <div style={{ marginTop: 12, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
                 {resetDone ? (
                   <p style={{ color: '#16a34a', fontWeight: 600 }}>✓ Password updated for {resetTarget.email}</p>
                 ) : (
                   <>
                     <label style={styles.lbl}>New Password for {resetTarget.email}</label>
-                    <input style={{ ...styles.inp, marginBottom: 12 }} type="password" placeholder="Min. 8 characters" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
-                    <button style={{ ...styles.confirmBtn, background: '#2563eb', width: '100%', padding: '11px' }} onClick={doResetPassword} disabled={resetPassword.length < 8}>
-                      Reset Password
-                    </button>
+                    <input style={{ ...styles.inp, marginBottom: 10 }} type="password" placeholder="Min. 8 characters" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
+                    <button style={{ ...styles.confirmBtn, background: '#2563eb', width: '100%', padding: '11px' }} onClick={doResetPassword} disabled={resetPassword.length < 8}>Reset Password</button>
                   </>
                 )}
               </div>
             )}
-            <button style={{ ...styles.cancelBtn, marginTop: 16, width: '100%' }} onClick={() => setResetModal(null)}>Close</button>
+
+            {resetModal.admins.length < 3 && (
+              <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 14 }}>
+                <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: '#374151' }}>Add New Admin</p>
+                {addAdminError && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 8 }}>{addAdminError}</p>}
+                <input style={{ ...styles.inp, marginBottom: 8 }} type="email" placeholder="Email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} />
+                <input style={{ ...styles.inp, marginBottom: 10 }} type="password" placeholder="Password (min. 8 chars)" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} />
+                <button style={{ ...styles.confirmBtn, width: '100%', padding: '11px' }} onClick={addAdmin} disabled={!newAdminEmail || newAdminPassword.length < 8}>Add Admin</button>
+              </div>
+            )}
+
+            <button style={{ ...styles.cancelBtn, marginTop: 16, width: '100%' }} onClick={() => { setResetModal(null); setResetTarget(null); setNewAdminEmail(''); setNewAdminPassword(''); setAddAdminError(''); }}>Close</button>
           </div>
         </div>
       )}
