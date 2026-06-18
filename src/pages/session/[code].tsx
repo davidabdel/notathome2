@@ -229,12 +229,12 @@ export default function SessionPage() {
               <span style={{ color: '#6b7280', fontSize: 14 }}>Selected Block:</span>
               <strong>{selectedBlock ?? 'None'}</strong>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+            <div style={{ marginTop: 12 }}>
               <button style={{ ...styles.recordBtn, opacity: locating ? 0.7 : 1 }} onClick={recordLocation} disabled={locating}>
                 {locating ? '📡 Locating…' : '📍 Record Location'}
               </button>
               <button style={styles.manualBtn} onClick={() => setManualModal(true)}>
-                + Record Manually
+                ✏️ Record Manually
               </button>
             </div>
           </div>
@@ -333,31 +333,31 @@ export default function SessionPage() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', background: '#f3f4f6', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' },
+  page: { minHeight: '100vh', minHeight: '100dvh', background: '#f3f4f6', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' },
   topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 },
   appName: { fontWeight: 700, fontSize: 16 },
-  smallBtn: { background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer' },
-  content: { padding: '16px', maxWidth: 600, margin: '0 auto' },
+  smallBtn: { background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 14, cursor: 'pointer' },
+  content: { padding: '16px', maxWidth: 500, margin: '0 auto' },
   card: { background: '#fff', borderRadius: 14, padding: '16px', border: '1px solid #e5e7eb', marginBottom: 14 },
-  blockGrid: { display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8 },
-  blockBtn: { padding: '14px 4px', background: '#f9fafb', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
+  blockGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 },
+  blockBtn: { padding: '18px 4px', background: '#f9fafb', border: '1.5px solid #e5e7eb', borderRadius: 12, fontSize: 17, fontWeight: 600, cursor: 'pointer' },
   blockBtnSel: { background: '#eff6ff', border: '2px solid #2563eb', color: '#2563eb' },
-  recordBtn: { padding: '13px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' },
-  manualBtn: { padding: '13px', background: '#f3f4f6', border: '1.5px solid #d1d5db', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' },
-  addrRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #f3f4f6' },
+  recordBtn: { padding: '16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: 'pointer', width: '100%', marginBottom: 10 },
+  manualBtn: { padding: '16px', background: '#f3f4f6', border: '1.5px solid #d1d5db', borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: 'pointer', color: '#374151', width: '100%' },
+  addrRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f3f4f6' },
   blockBadge: { background: '#eff6ff', color: '#2563eb', borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 700, marginRight: 8 },
-  deleteBtn: { background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 14, padding: 4 },
-  btn: { width: '100%', padding: '14px', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: 'pointer', marginBottom: 10 },
+  deleteBtn: { background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 18, padding: '4px 8px' },
+  btn: { width: '100%', padding: '16px', color: '#fff', border: 'none', borderRadius: 12, fontSize: 17, fontWeight: 600, cursor: 'pointer', marginBottom: 10 },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 },
-  modal: { background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 36px', width: '100%', maxWidth: 500 },
-  closeBtn: { background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#6b7280' },
-  row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 },
+  modal: { background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' },
+  closeBtn: { background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280', padding: '4px 8px' },
+  row2: { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 },
   field2: {},
   field3: { marginBottom: 12 },
-  lbl: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 5 },
-  inp: { width: '100%', padding: '10px 12px', border: '1.5px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' },
-  cancelBtn: { flex: 1, padding: '12px', background: '#f3f4f6', border: 'none', borderRadius: 10, fontSize: 15, cursor: 'pointer' },
-  confirmBtn: { flex: 2, padding: '12px', background: '#111827', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer' },
+  lbl: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },
+  inp: { width: '100%', padding: '12px 14px', border: '1.5px solid #d1d5db', borderRadius: 10, fontSize: 16, outline: 'none', boxSizing: 'border-box' },
+  cancelBtn: { flex: 1, padding: '14px', background: '#f3f4f6', border: 'none', borderRadius: 12, fontSize: 16, cursor: 'pointer' },
+  confirmBtn: { flex: 2, padding: '14px', background: '#111827', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 12 },
   link: { color: '#2563eb', fontSize: 15 },
 };
