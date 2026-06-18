@@ -333,7 +333,7 @@ export default function SessionPage() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', minHeight: '100dvh', background: '#f3f4f6', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' },
+  page: { minHeight: '100dvh', background: '#f3f4f6', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' },
   topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 },
   appName: { fontWeight: 700, fontSize: 16 },
   smallBtn: { background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 14, cursor: 'pointer' },
