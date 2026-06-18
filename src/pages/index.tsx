@@ -12,8 +12,12 @@ export default function Home() {
   const [showInstall, setShowInstall] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [splashReady, setSplashReady] = useState(false);
+  const [showSkip, setShowSkip] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
   const deferredPromptRef = useRef<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const skipTimerRef = useRef<NodeJS.Timeout>();
 
   const SPLASH_URL = 'https://pub-daf8c14077c6451eb1877ef9bf624ab7.r2.dev/splash/winter-update.mp4';
 
@@ -175,21 +179,43 @@ export default function Home() {
       </div>
 
       {showSplash && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => { localStorage.setItem('nah_splash_winter', '1'); setShowSplash(false); }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Loading indicator — shown until video is buffered and playing */}
+          {!splashReady && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 40, height: 40, border: '2px solid rgba(99,102,241,0.3)', borderTop: '2px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: 0 }}>Loading…</p>
+            </div>
+          )}
           <video
+            ref={videoRef}
             src={SPLASH_URL}
             autoPlay
             playsInline
-            muted={false}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            onEnded={() => { localStorage.setItem('nah_splash_winter', '1'); setShowSplash(false); }}
+            muted
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: splashReady ? 1 : 0, transition: 'opacity 0.4s' }}
+            onCanPlayThrough={() => {
+              setSplashReady(true);
+              videoRef.current?.play();
+              // Show skip button after 3 seconds
+              skipTimerRef.current = setTimeout(() => setShowSkip(true), 3000);
+            }}
+            onEnded={() => {
+              clearTimeout(skipTimerRef.current);
+              localStorage.setItem('nah_splash_winter', '1');
+              setShowSplash(false);
+            }}
           />
-          <div style={{ position: 'absolute', bottom: 32, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-            Tap to skip
-          </div>
+          {splashReady && showSkip && (
+            <button
+              style={{ position: 'absolute', bottom: 40, right: 20, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 20, padding: '8px 18px', fontSize: 13, cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+              onClick={() => { clearTimeout(skipTimerRef.current); localStorage.setItem('nah_splash_winter', '1'); setShowSplash(false); }}>
+              Skip
+            </button>
+          )}
         </div>
       )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {showInstall && (
         <div style={styles.overlay}>
