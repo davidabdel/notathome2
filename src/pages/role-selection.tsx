@@ -81,7 +81,6 @@ export default function RoleSelection() {
 
 const S: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: '100vh',
     minHeight: '100dvh',
     background: '#f3f4f6',
     fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
