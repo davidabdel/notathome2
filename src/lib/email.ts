@@ -1,15 +1,3 @@
-import nodemailer from 'nodemailer';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
 export async function sendSessionExpiredEmail(opts: {
   to: string;
   congregationName: string;
@@ -43,10 +31,17 @@ export async function sendSessionExpiredEmail(opts: {
     ${rows || '<p>No addresses were recorded.</p>'}
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || 'noreply@nothome.app',
-    to: opts.to,
-    subject: `[Not At Home] Session ${opts.sessionCode} auto-expired — ${opts.congregationName}`,
-    html,
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Not At Home <onboarding@resend.dev>',
+      to: [opts.to],
+      subject: `[Not At Home] Session ${opts.sessionCode} auto-expired — ${opts.congregationName}`,
+      html,
+    }),
   });
 }
