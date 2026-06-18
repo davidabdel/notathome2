@@ -26,23 +26,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const appUrl = process.env.NEXT_PUBLIC_URL || 'https://nothome.app';
   const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Not At Home <onboarding@resend.dev>',
-      to: [rows[0].email],
-      subject: 'Not At Home — Password Reset',
-      html: `
-        <p>Hi,</p>
-        <p>A password reset was requested for the <strong>${rows[0].congregation_name}</strong> admin account.</p>
-        <p><a href="${resetUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Reset Password</a></p>
-        <p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>
-      `,
-    }),
+  const { createTransport } = await import('nodemailer');
+  const transporter = createTransport({
+    host: 'smtp.improvmx.com',
+    port: 587,
+    secure: false,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  await transporter.sendMail({
+    from: `Not At Home <${process.env.SMTP_USER}>`,
+    to: rows[0].email,
+    subject: 'Not At Home — Password Reset',
+    html: `
+      <p>Hi,</p>
+      <p>A password reset was requested for the <strong>${rows[0].congregation_name}</strong> admin account.</p>
+      <p><a href="${resetUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Reset Password</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>
+    `,
   });
 
   return res.status(200).json({ success: true });
