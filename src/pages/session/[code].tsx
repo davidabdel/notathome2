@@ -143,7 +143,9 @@ export default function SessionPage() {
     const lines = Object.entries(byBlock).sort(([a], [b]) => Number(a) - Number(b)).map(([block, arr]) => {
       const evens = arr.filter(a => Number(a.house_number) % 2 === 0).sort((a, b) => Number(a.house_number) - Number(b.house_number));
       const odds  = arr.filter(a => Number(a.house_number) % 2 !== 0).sort((a, b) => Number(a.house_number) - Number(b.house_number));
-      return `BLOCK ${block}:\nEven: ${evens.map(fmt).join(', ') || 'None'}\nOdd:  ${odds.map(fmt).join(', ') || 'None'}`;
+      const evenLines = evens.length ? 'Even:\n' + evens.map(a => `  • ${fmt(a)}`).join('\n') : 'Even: None';
+      const oddLines  = odds.length  ? 'Odd:\n'  + odds.map(a  => `  • ${fmt(a)}`).join('\n') : 'Odd: None';
+      return `BLOCK ${block}:\n${evenLines}\n${oddLines}`;
     }).join('\n\n');
     const text = `Not At Home — Session ${code} | Map ${session?.map_number}\n\n${lines || 'No addresses recorded.'}`;
     if (navigator.share) navigator.share({ title: 'Not At Home Results', text });
@@ -276,8 +278,19 @@ export default function SessionPage() {
             </div>
             <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>Please confirm or edit the detected address</p>
             <div style={styles.row2}>
-              <div style={styles.field2}><label style={styles.lbl}>Unit Number</label><input style={styles.inp} value={confirmModal.unit} onChange={e => setConfirmModal({ ...confirmModal, unit: e.target.value })} placeholder="Optional" /></div>
-              <div style={styles.field2}><label style={styles.lbl}>House Number</label><input style={styles.inp} value={confirmModal.house} onChange={e => setConfirmModal({ ...confirmModal, house: e.target.value })} required /></div>
+              <div style={styles.field2}><label style={styles.lbl}>Unit Number</label><input style={styles.inp} value={confirmModal.unit} onChange={e => setConfirmModal({ ...confirmModal, unit: e.target.value })} placeholder="Optional" inputMode="numeric" /></div>
+              <div style={styles.field2}>
+                <label style={styles.lbl}>House Number {!confirmModal.house && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                <input
+                  style={{ ...styles.inp, borderColor: confirmModal.house ? '#d1d5db' : '#dc2626', background: confirmModal.house ? '#fff' : '#fef2f2' }}
+                  value={confirmModal.house}
+                  onChange={e => setConfirmModal({ ...confirmModal, house: e.target.value })}
+                  placeholder="e.g. 42"
+                  inputMode="numeric"
+                  autoFocus={!confirmModal.house}
+                  required
+                />
+              </div>
             </div>
             <div style={styles.field3}><label style={styles.lbl}>Street Name</label><input style={styles.inp} value={confirmModal.street} onChange={e => setConfirmModal({ ...confirmModal, street: e.target.value })} required /></div>
             <div style={styles.field3}><label style={styles.lbl}>Suburb</label><input style={styles.inp} value={confirmModal.suburb} onChange={e => setConfirmModal({ ...confirmModal, suburb: e.target.value })} /></div>
