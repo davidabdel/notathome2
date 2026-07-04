@@ -76,24 +76,23 @@ export default function SessionPage() {
     navigator.geolocation.getCurrentPosition(
       async pos => {
         setLocating(false);
-        // Reverse geocode
+        // Reverse geocode server-side (Google when configured, OSM fallback)
         const { latitude, longitude } = pos.coords;
         try {
-          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-          const geo = await r.json();
-          const addr = geo.address || {};
+          const r = await fetch(`/api/geocode/reverse?lat=${latitude}&lon=${longitude}`);
+          const addr = await r.json();
           setConfirmModal({
             unit: addr.unit || '',
-            house: addr.house_number || '',
-            street: addr.road || addr.street || '',
-            suburb: addr.suburb || addr.city || addr.town || '',
+            house: addr.house || '',
+            street: addr.street || '',
+            suburb: addr.suburb || '',
           });
         } catch {
           setConfirmModal({ unit: '', house: '', street: '', suburb: '' });
         }
       },
       () => { setLocating(false); alert('Could not get location. Try manually.'); },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
