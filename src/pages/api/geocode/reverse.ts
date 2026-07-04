@@ -11,11 +11,13 @@ const EMPTY: ReverseResult = { unit: '', house: '', street: '', suburb: '' };
 
 // Google Geocoding API interpolates house numbers along streets, so it can
 // return a street number even where OSM has no address point for the building.
-async function googleReverse(lat: string, lon: string, key: string): Promise<ReverseResult | null> {
+// The Referer header lets browser keys with HTTP-referrer restrictions (like
+// the v1 NEXT_PUBLIC key) work from this server-side call.
+async function googleReverse(lat: string, lon: string, key: string, referer: string): Promise<ReverseResult | null> {
   const url =
     `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}` +
     `&result_type=street_address|premise|subpremise&key=${key}`;
-  const r = await fetch(url);
+  const r = await fetch(url, { headers: { Referer: referer } });
   if (!r.ok) return null;
   const data = await r.json();
   if (data.status !== 'OK' || !data.results?.length) return null;
@@ -67,7 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (key) {
     try {
-      const g = await googleReverse(lat, lon, key);
+      const referer = `https://${req.headers.host || 'nothome.app'}/`;
+      const g = await googleReverse(lat, lon, key, referer);
       if (g) return res.status(200).json(g);
     } catch {
       // fall through to Nominatim
