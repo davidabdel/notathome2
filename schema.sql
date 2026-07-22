@@ -37,12 +37,16 @@ CREATE TABLE IF NOT EXISTS territory_maps (
 
 -- Do Not Call entries per map
 CREATE TABLE IF NOT EXISTS do_not_call (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  map_id      UUID NOT NULL REFERENCES territory_maps(id) ON DELETE CASCADE,
-  address     TEXT NOT NULL,
-  note        TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  map_id       UUID NOT NULL REFERENCES territory_maps(id) ON DELETE CASCADE,
+  block_number INTEGER,
+  address      TEXT NOT NULL,
+  note         TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Existing databases: add the block column if missing
+ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS block_number INTEGER;
 
 -- Active sessions (ephemeral — deleted when session ends or after 24h)
 CREATE TABLE IF NOT EXISTS sessions (

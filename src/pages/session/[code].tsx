@@ -10,7 +10,7 @@ interface Address {
 }
 interface MapData {
   id: string; map_number: number; name: string | null; block_count: number; image_url: string | null;
-  dnc: Array<{ id: string; address: string; note?: string }>;
+  dnc: Array<{ id: string; block_number?: number | null; address: string; note?: string }>;
 }
 
 export default function SessionPage() {
@@ -214,9 +214,24 @@ export default function SessionPage() {
               {mapData.dnc.length > 0 && (
                 <div style={{ background: '#fef9c3', borderRadius: 8, padding: '10px 12px', marginTop: 8 }}>
                   <strong style={{ fontSize: 13 }}>Do Not Call:</strong>
-                  {mapData.dnc.map(d => (
-                    <div key={d.id} style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>• {d.address}{d.note ? ` — ${d.note}` : ''}</div>
-                  ))}
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
+                    <thead>
+                      <tr>
+                        <th style={styles.dncTh}>Block</th>
+                        <th style={{ ...styles.dncTh, textAlign: 'left' }}>Address</th>
+                        <th style={{ ...styles.dncTh, textAlign: 'left' }}>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mapData.dnc.map(d => (
+                        <tr key={d.id}>
+                          <td style={{ ...styles.dncTd, textAlign: 'center' }}>{d.block_number ?? ''}</td>
+                          <td style={styles.dncTd}>{d.address}</td>
+                          <td style={styles.dncTd}>{d.note || ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -385,6 +400,8 @@ const styles: Record<string, React.CSSProperties> = {
   field3: { marginBottom: 12 },
   dncRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 15, fontWeight: 600, color: '#b91c1c', cursor: 'pointer' },
   dncBox: { width: 20, height: 20, accentColor: '#dc2626' },
+  dncTh: { fontSize: 12, fontWeight: 700, color: '#374151', padding: '4px 6px', borderBottom: '1px solid #d1d5db', textAlign: 'center' },
+  dncTd: { fontSize: 13, color: '#374151', padding: '5px 6px', borderBottom: '1px solid #e5e7eb' },
   lbl: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },
   inp: { width: '100%', padding: '12px 14px', border: '1.5px solid #d1d5db', borderRadius: 10, fontSize: 16, outline: 'none', boxSizing: 'border-box' },
   cancelBtn: { flex: 1, padding: '14px', background: '#f3f4f6', border: 'none', borderRadius: 12, fontSize: 16, cursor: 'pointer' },

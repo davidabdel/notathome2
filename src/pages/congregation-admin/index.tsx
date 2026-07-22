@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 
 interface MapRow { id: string; map_number: number; name: string | null; block_count: number; image_url: string | null; }
-interface DNCEntry { id: string; address: string; note: string | null; }
+interface DNCEntry { id: string; block_number?: number | null; address: string; note: string | null; }
 interface Settings { name: string; pin_code: string; notification_email: string | null; }
 
 export default function CongregationAdmin() {
@@ -22,7 +22,7 @@ export default function CongregationAdmin() {
   const [detailMap, setDetailMap] = useState<MapRow | null>(null);
   const [detailForm, setDetailForm] = useState({ map_number: '', name: '', block_count: '1' });
   const [dnc, setDnc] = useState<DNCEntry[]>([]);
-  const [dncForm, setDncForm] = useState({ address: '', note: '' });
+  const [dncForm, setDncForm] = useState({ address: '', note: '', block: '' });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [savingMap, setSavingMap] = useState(false);
   const [addingDnc, setAddingDnc] = useState(false);
@@ -73,7 +73,7 @@ export default function CongregationAdmin() {
     setDetailMap(m);
     setDetailForm({ map_number: String(m.map_number), name: m.name || '', block_count: String(m.block_count) });
     setDnc([]);
-    setDncForm({ address: '', note: '' });
+    setDncForm({ address: '', note: '', block: '' });
     loadDnc(m.id);
   };
 
@@ -137,9 +137,9 @@ export default function CongregationAdmin() {
     setAddingDnc(true);
     const res = await fetch(`/api/maps/${detailMap.id}/dnc`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dncForm),
+      body: JSON.stringify({ address: dncForm.address, note: dncForm.note, block_number: dncForm.block ? parseInt(dncForm.block, 10) : null }),
     });
-    if (res.ok) { setDncForm({ address: '', note: '' }); loadDnc(detailMap.id); }
+    if (res.ok) { setDncForm({ address: '', note: '', block: '' }); loadDnc(detailMap.id); }
     setAddingDnc(false);
   };
 
@@ -324,13 +324,15 @@ export default function CongregationAdmin() {
               {dnc.map(d => (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8, padding: '8px 12px', background: '#fef9f0', borderRadius: 8, border: '1px solid #fde68a' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{d.address}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{d.block_number != null ? `Block ${d.block_number} — ` : ''}{d.address}</div>
                     {d.note && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{d.note}</div>}
                   </div>
                   <button onClick={() => deleteDnc(d.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
                 </div>
               ))}
               <div style={{ marginTop: 8 }}>
+                <input style={{ ...S.inp, marginBottom: 6 }} placeholder="Block number (optional, e.g. 2)" inputMode="numeric" value={dncForm.block} onChange={e => setDncForm({ ...dncForm, block: e.target.value })}
+                  onKeyDown={e => e.key === 'Enter' && addDnc()} />
                 <input style={{ ...S.inp, marginBottom: 6 }} placeholder="Address (e.g. 12 Smith St)" value={dncForm.address} onChange={e => setDncForm({ ...dncForm, address: e.target.value })}
                   onKeyDown={e => e.key === 'Enter' && addDnc()} />
                 <input style={{ ...S.inp, marginBottom: 8 }} placeholder="Note (optional, e.g. Dog, Hostile)" value={dncForm.note} onChange={e => setDncForm({ ...dncForm, note: e.target.value })}
