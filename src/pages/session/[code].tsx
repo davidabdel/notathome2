@@ -24,9 +24,9 @@ export default function SessionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [locating, setLocating] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ unit: string; house: string; street: string; suburb: string } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ unit: string; house: string; street: string; suburb: string; dnc: boolean } | null>(null);
   const [manualModal, setManualModal] = useState(false);
-  const [manual, setManual] = useState({ unit: '', house: '', street: '', suburb: '' });
+  const [manual, setManual] = useState({ unit: '', house: '', street: '', suburb: '', dnc: false });
   const [endModal, setEndModal] = useState(false);
   const [endData, setEndData] = useState<Address[] | null>(null);
   const [isOverseer, setIsOverseer] = useState(false);
@@ -86,9 +86,10 @@ export default function SessionPage() {
             house: addr.house || '',
             street: addr.street || '',
             suburb: addr.suburb || '',
+            dnc: false,
           });
         } catch {
-          setConfirmModal({ unit: '', house: '', street: '', suburb: '' });
+          setConfirmModal({ unit: '', house: '', street: '', suburb: '', dnc: false });
         }
       },
       () => { setLocating(false); alert('Could not get location. Try manually.'); },
@@ -96,7 +97,7 @@ export default function SessionPage() {
     );
   };
 
-  const saveAddress = async (data: { unit: string; house: string; street: string; suburb: string }) => {
+  const saveAddress = async (data: { unit: string; house: string; street: string; suburb: string; dnc: boolean }) => {
     if (!session || !selectedBlock) return;
     const res = await fetch('/api/addresses', {
       method: 'POST',
@@ -108,13 +109,19 @@ export default function SessionPage() {
         house_number: data.house,
         street_name: data.street,
         suburb: data.suburb || null,
+        dnc: data.dnc,
       }),
     });
     if (res.ok) {
       setConfirmModal(null);
       setManualModal(false);
-      setManual({ unit: '', house: '', street: '', suburb: '' });
+      setManual({ unit: '', house: '', street: '', suburb: '', dnc: false });
       loadAddresses(session.id);
+      // Refresh the map's Do Not Call list so a new DNC shows immediately
+      if (data.dnc && mapData) {
+        const mRes = await fetch(`/api/maps/${mapData.id}`);
+        if (mRes.ok) setMapData(await mRes.json());
+      }
     }
   };
 
@@ -295,6 +302,10 @@ export default function SessionPage() {
             </div>
             <div style={styles.field3}><label style={styles.lbl}>Street Name</label><input style={styles.inp} value={confirmModal.street} onChange={e => setConfirmModal({ ...confirmModal, street: e.target.value })} required /></div>
             <div style={styles.field3}><label style={styles.lbl}>Suburb</label><input style={styles.inp} value={confirmModal.suburb} onChange={e => setConfirmModal({ ...confirmModal, suburb: e.target.value })} /></div>
+            <label style={styles.dncRow}>
+              <input type="checkbox" checked={confirmModal.dnc} onChange={e => setConfirmModal({ ...confirmModal, dnc: e.target.checked })} style={styles.dncBox} />
+              DNC — Do Not Call
+            </label>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button style={styles.cancelBtn} onClick={() => setConfirmModal(null)}>Cancel</button>
               <button style={styles.confirmBtn} onClick={() => saveAddress(confirmModal)}>Confirm &amp; Save</button>
@@ -317,6 +328,10 @@ export default function SessionPage() {
             </div>
             <div style={styles.field3}><label style={styles.lbl}>Street Name</label><input style={styles.inp} value={manual.street} onChange={e => setManual({ ...manual, street: e.target.value })} required /></div>
             <div style={styles.field3}><label style={styles.lbl}>Suburb</label><input style={styles.inp} value={manual.suburb} onChange={e => setManual({ ...manual, suburb: e.target.value })} /></div>
+            <label style={styles.dncRow}>
+              <input type="checkbox" checked={manual.dnc} onChange={e => setManual({ ...manual, dnc: e.target.checked })} style={styles.dncBox} />
+              DNC — Do Not Call
+            </label>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button style={styles.cancelBtn} onClick={() => setManualModal(false)}>Cancel</button>
               <button style={styles.confirmBtn} onClick={() => saveAddress(manual)} disabled={!manual.house || !manual.street}>Save</button>
@@ -368,6 +383,8 @@ const styles: Record<string, React.CSSProperties> = {
   row2: { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 },
   field2: {},
   field3: { marginBottom: 12 },
+  dncRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 15, fontWeight: 600, color: '#b91c1c', cursor: 'pointer' },
+  dncBox: { width: 20, height: 20, accentColor: '#dc2626' },
   lbl: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },
   inp: { width: '100%', padding: '12px 14px', border: '1.5px solid #d1d5db', borderRadius: 10, fontSize: 16, outline: 'none', boxSizing: 'border-box' },
   cancelBtn: { flex: 1, padding: '14px', background: '#f3f4f6', border: 'none', borderRadius: 12, fontSize: 16, cursor: 'pointer' },

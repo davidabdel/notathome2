@@ -13,12 +13,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'POST') {
-    const { session_id, block_number, unit_number, house_number, street_name, suburb } = req.body;
+    const { session_id, block_number, unit_number, house_number, street_name, suburb, dnc } = req.body;
     if (!session_id || !block_number || !house_number || !street_name) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     const session = await sql`
-      SELECT id FROM sessions WHERE id = ${session_id} AND is_active = true AND expires_at > NOW() LIMIT 1
+      SELECT id, congregation_id, map_number FROM sessions
+      WHERE id = ${session_id} AND is_active = true AND expires_at > NOW() LIMIT 1
     `;
     if (!session.length) return res.status(404).json({ error: 'Session not found or expired' });
     const rows = await sql`
@@ -26,6 +27,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       VALUES (${session_id}, ${block_number}, ${unit_number || null}, ${house_number}, ${street_name}, ${suburb || null})
       RETURNING *
     `;
+
+    // DNC flag: permanently record this address on the map's Do Not Call list
+    if (dnc === true) {
+      const addrText = `${unit_number ? `${unit_number}/` : ''}${house_number} ${street_name}`.trim();
+      const map = await sql`
+        SELECT id FROM territory_maps
+        WHERE congregation_id = ${session[0].congregation_id} AND map_number = ${session[0].map_number} LIMIT 1
+      `;
+      if (map.length) {
+        const existing = await sql`
+          SELECT id FROM do_not_call WHERE map_id = ${map[0].id} AND LOWER(address) = LOWER(${addrText}) LIMIT 1
+        `;
+        if (!existing.length) {
+          await sql`INSERT INTO do_not_call (map_id, address, note) VALUES (${map[0].id}, ${addrText}, 'DNC')`;
+        }
+      }
+    }
+
     return res.status(201).json(rows[0]);
   }
 
