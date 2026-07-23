@@ -10,7 +10,7 @@ interface Address {
 }
 interface MapData {
   id: string; map_number: number; name: string | null; block_count: number; image_url: string | null;
-  dnc: Array<{ id: string; block_number?: number | null; address: string; note?: string }>;
+  dnc: Array<{ id: string; block_number?: number | null; address: string; note?: string; last_visit?: string | null }>;
 }
 
 export default function SessionPage() {
@@ -219,7 +219,7 @@ export default function SessionPage() {
                       <tr>
                         <th style={styles.dncTh}>Block</th>
                         <th style={{ ...styles.dncTh, textAlign: 'left' }}>Address</th>
-                        <th style={{ ...styles.dncTh, textAlign: 'left' }}>Note</th>
+                        <th style={{ ...styles.dncTh, textAlign: 'left' }}>Last Visit</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -227,7 +227,7 @@ export default function SessionPage() {
                         <tr key={d.id}>
                           <td style={{ ...styles.dncTd, textAlign: 'center' }}>{d.block_number ?? ''}</td>
                           <td style={styles.dncTd}>{d.address}</td>
-                          <td style={styles.dncTd}>{d.note || ''}</td>
+                          <td style={styles.dncTd}>{d.last_visit || ''}</td>
                         </tr>
                       ))}
                     </tbody>

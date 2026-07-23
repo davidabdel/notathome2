@@ -37,13 +37,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       `;
       if (map.length) {
         await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS block_number INTEGER`;
+        await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS last_visit TEXT`;
+        const lastVisit = new Date().toLocaleDateString('en-AU', {
+          day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',
+        });
         const existing = await sql`
           SELECT id FROM do_not_call WHERE map_id = ${map[0].id} AND LOWER(address) = LOWER(${addrText}) LIMIT 1
         `;
-        if (!existing.length) {
+        if (existing.length) {
           await sql`
-            INSERT INTO do_not_call (map_id, block_number, address, note)
-            VALUES (${map[0].id}, ${block_number}, ${addrText}, 'DNC')
+            UPDATE do_not_call SET block_number = ${block_number}, last_visit = ${lastVisit}
+            WHERE id = ${existing[0].id}
+          `;
+        } else {
+          await sql`
+            INSERT INTO do_not_call (map_id, block_number, address, note, last_visit)
+            VALUES (${map[0].id}, ${block_number}, ${addrText}, 'DNC', ${lastVisit})
           `;
         }
       }

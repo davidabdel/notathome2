@@ -42,11 +42,13 @@ CREATE TABLE IF NOT EXISTS do_not_call (
   block_number INTEGER,
   address      TEXT NOT NULL,
   note         TEXT,
+  last_visit   TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Existing databases: add the block column if missing
+-- Existing databases: add newer columns if missing
 ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS block_number INTEGER;
+ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS last_visit TEXT;
 
 -- Active sessions (ephemeral — deleted when session ends or after 24h)
 CREATE TABLE IF NOT EXISTS sessions (

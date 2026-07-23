@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 
 interface MapRow { id: string; map_number: number; name: string | null; block_count: number; image_url: string | null; }
-interface DNCEntry { id: string; block_number?: number | null; address: string; note: string | null; }
+interface DNCEntry { id: string; block_number?: number | null; address: string; note: string | null; last_visit?: string | null; }
 interface Settings { name: string; pin_code: string; notification_email: string | null; }
 
 export default function CongregationAdmin() {
@@ -31,6 +31,11 @@ export default function CongregationAdmin() {
   // Add map modal
   const [addModal, setAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ map_number: '', name: '', block_count: '10' });
+
+  // DNC bulk import
+  const csvRef = useRef<HTMLInputElement>(null);
+  const [importingDnc, setImportingDnc] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
 
   useEffect(() => {
     const init = async () => {
@@ -152,6 +157,54 @@ export default function CongregationAdmin() {
     loadDnc(detailMap.id);
   };
 
+  const importDncCsv = async (file: File) => {
+    setImportMsg('');
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { alert('CSV appears to be empty.'); return; }
+
+    // Match columns by header name: Map Number, Block Number, Address, Date / Last Visit
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const col = (match: (h: string) => boolean) => headers.findIndex(match);
+    const mapCol = col(h => h.includes('map'));
+    const blockCol = col(h => h.includes('block'));
+    const addrCol = col(h => h.includes('address'));
+    const dateCol = col(h => h.includes('date') || h.includes('visit'));
+    if (mapCol === -1 || addrCol === -1) {
+      alert('CSV must have "Map Number" and "Address" columns.');
+      return;
+    }
+
+    const entries = lines.slice(1).map(line => {
+      const cells = line.split(',').map(c => c.trim());
+      return {
+        map_number: cells[mapCol],
+        block_number: blockCol !== -1 ? cells[blockCol] || null : null,
+        address: cells[addrCol] || '',
+        last_visit: dateCol !== -1 ? cells[dateCol] || null : null,
+      };
+    }).filter(e => e.address && e.map_number);
+    if (!entries.length) { alert('No valid rows found in CSV.'); return; }
+
+    setImportingDnc(true);
+    const res = await fetch('/api/maps/dnc-import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries }),
+    });
+    setImportingDnc(false);
+    if (res.ok) {
+      const r = await res.json();
+      let summary = `Imported ${r.imported} DNC entr${r.imported === 1 ? 'y' : 'ies'}` +
+        (r.updated ? `, updated ${r.updated} existing` : '') + '.';
+      if (r.unmatched_maps?.length) summary += `\nNo map found for map number(s): ${r.unmatched_maps.join(', ')} — those rows were skipped.`;
+      setImportMsg(summary);
+      if (detailMap) loadDnc(detailMap.id);
+    } else {
+      const d = await res.json().catch(() => ({}));
+      alert(d.error || 'Import failed');
+    }
+  };
+
   const deleteMap = async (id: string) => {
     if (!confirm('Delete this map and all its DNC entries?')) return;
     await fetch(`/api/maps/${id}`, { method: 'DELETE' });
@@ -209,7 +262,20 @@ export default function CongregationAdmin() {
         <div style={S.content}>
           {tab === 'maps' && (
             <>
-              <button style={S.addBtn} onClick={openAdd}>+ Add Map</button>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button style={S.addBtn} onClick={openAdd}>+ Add Map</button>
+                <button style={{ ...S.addBtn, background: '#d97706' }} onClick={() => csvRef.current?.click()} disabled={importingDnc}>
+                  {importingDnc ? 'Importing…' : '⬆ Import DNC CSV'}
+                </button>
+                <input
+                  ref={csvRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) importDncCsv(f); e.target.value = ''; }}
+                />
+              </div>
+              {importMsg && <div style={{ ...S.success, whiteSpace: 'pre-line' }}>{importMsg}</div>}
               {maps.length === 0
                 ? <p style={S.empty}>No maps yet.</p>
                 : (
@@ -325,7 +391,11 @@ export default function CongregationAdmin() {
                 <div key={d.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8, padding: '8px 12px', background: '#fef9f0', borderRadius: 8, border: '1px solid #fde68a' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{d.block_number != null ? `Block ${d.block_number} — ` : ''}{d.address}</div>
-                    {d.note && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{d.note}</div>}
+                    {(d.note || d.last_visit) && (
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                        {[d.note, d.last_visit ? `Last visit: ${d.last_visit}` : ''].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => deleteDnc(d.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
                 </div>
