@@ -122,7 +122,7 @@ export default function SuperAdmin() {
   const removeAdmin = async (adminId: string) => {
     if (!resetModal) return;
     if (!confirm('Remove this admin?')) return;
-    await fetch('/api/congregation-admin/admins', {
+    await fetch(`/api/congregation-admin/admins?congregation_id=${resetModal.congregation.id}`, {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ admin_id: adminId }),
     });
