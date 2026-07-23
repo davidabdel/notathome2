@@ -340,12 +340,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'POST') {
-    const congs = await sql`SELECT id, name FROM congregations`;
-    let congregationId = req.body?.congregation_id as string | undefined;
-    if (!congregationId) {
-      if (congs.length !== 1) return res.status(400).json({ error: 'specify congregation_id', congregations: congs });
-      congregationId = congs[0].id as string;
-    }
+    const congregationId = req.body?.congregation_id as string | undefined;
+    if (!congregationId) return res.status(400).json({ error: 'congregation_id required' });
 
     await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS block_number INTEGER`;
     await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS last_visit TEXT`;
@@ -354,27 +350,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mapByNumber = new Map<number, string>();
     for (const m of maps) mapByNumber.set(Number(m.map_number), m.id as string);
 
-    let imported = 0, updated = 0;
     const unmatched = new Set<number>();
+    const mapIds: string[] = [], blocks: (number | null)[] = [], addrs: string[] = [], visits: (string | null)[] = [];
     for (const e of ENTRIES) {
       const mapId = mapByNumber.get(e.map_number);
       if (!mapId) { unmatched.add(e.map_number); continue; }
-      const existing = await sql`
-        SELECT id FROM do_not_call WHERE map_id = ${mapId} AND LOWER(address) = LOWER(${e.address}) LIMIT 1
+      mapIds.push(mapId); blocks.push(e.block_number); addrs.push(e.address); visits.push(e.last_visit);
+    }
+
+    let updated = 0, imported = 0;
+    if (mapIds.length) {
+      const upd = await sql`
+        UPDATE do_not_call x SET
+          block_number = COALESCE(d.block_number, x.block_number),
+          last_visit = COALESCE(d.last_visit, x.last_visit)
+        FROM (SELECT * FROM unnest(${mapIds}::uuid[], ${blocks}::int[], ${addrs}::text[], ${visits}::text[])
+              AS t(map_id, block_number, address, last_visit)) d
+        WHERE x.map_id = d.map_id AND LOWER(x.address) = LOWER(d.address)
+        RETURNING x.id
       `;
-      if (existing.length) {
-        await sql`
-          UPDATE do_not_call SET block_number = COALESCE(${e.block_number}, block_number), last_visit = COALESCE(${e.last_visit}, last_visit)
-          WHERE id = ${existing[0].id}
-        `;
-        updated++;
-      } else {
-        await sql`
-          INSERT INTO do_not_call (map_id, block_number, address, note, last_visit)
-          VALUES (${mapId}, ${e.block_number}, ${e.address}, 'DNC', ${e.last_visit})
-        `;
-        imported++;
-      }
+      updated = upd.length;
+      const ins = await sql`
+        INSERT INTO do_not_call (map_id, block_number, address, note, last_visit)
+        SELECT d.map_id, d.block_number, d.address, 'DNC', d.last_visit
+        FROM (SELECT * FROM unnest(${mapIds}::uuid[], ${blocks}::int[], ${addrs}::text[], ${visits}::text[])
+              AS t(map_id, block_number, address, last_visit)) d
+        WHERE NOT EXISTS (
+          SELECT 1 FROM do_not_call x WHERE x.map_id = d.map_id AND LOWER(x.address) = LOWER(d.address)
+        )
+        RETURNING id
+      `;
+      imported = ins.length;
     }
     return res.status(200).json({ imported, updated, unmatched_maps: Array.from(unmatched).sort((a, b) => a - b) });
   }

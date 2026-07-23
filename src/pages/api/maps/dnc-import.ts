@@ -30,9 +30,11 @@ export default requireAdmin(async (req: NextApiRequest, res: NextApiResponse, ad
   const mapByNumber = new Map<number, string>();
   for (const m of maps) mapByNumber.set(Number(m.map_number), m.id as string);
 
-  let imported = 0;
-  let updated = 0;
   const unmatchedMaps = new Set<number>();
+  const mapIds: string[] = [];
+  const blocks: (number | null)[] = [];
+  const addrs: string[] = [];
+  const visits: (string | null)[] = [];
 
   for (const e of entries) {
     const mapNumber = Number(e.map_number);
@@ -42,27 +44,39 @@ export default requireAdmin(async (req: NextApiRequest, res: NextApiResponse, ad
     const mapId = mapByNumber.get(mapNumber);
     if (!mapId) { unmatchedMaps.add(mapNumber); continue; }
 
-    const block = e.block_number != null && String(e.block_number).trim() !== '' ? Number(e.block_number) : null;
-    const lastVisit = e.last_visit ? String(e.last_visit).trim() : null;
+    mapIds.push(mapId);
+    blocks.push(e.block_number != null && String(e.block_number).trim() !== '' ? Number(e.block_number) : null);
+    addrs.push(address);
+    visits.push(e.last_visit ? String(e.last_visit).trim() : null);
+  }
 
-    const existing = await sql`
-      SELECT id FROM do_not_call WHERE map_id = ${mapId} AND LOWER(address) = LOWER(${address}) LIMIT 1
+  // Batched update-then-insert keeps this to a few queries so large
+  // imports fit inside the serverless function time limit.
+  let updated = 0;
+  let imported = 0;
+  if (mapIds.length) {
+    const upd = await sql`
+      UPDATE do_not_call x SET
+        block_number = COALESCE(d.block_number, x.block_number),
+        last_visit = COALESCE(d.last_visit, x.last_visit)
+      FROM (SELECT * FROM unnest(${mapIds}::uuid[], ${blocks}::int[], ${addrs}::text[], ${visits}::text[])
+            AS t(map_id, block_number, address, last_visit)) d
+      WHERE x.map_id = d.map_id AND LOWER(x.address) = LOWER(d.address)
+      RETURNING x.id
     `;
-    if (existing.length) {
-      await sql`
-        UPDATE do_not_call SET
-          block_number = COALESCE(${block}, block_number),
-          last_visit = COALESCE(${lastVisit}, last_visit)
-        WHERE id = ${existing[0].id}
-      `;
-      updated++;
-    } else {
-      await sql`
-        INSERT INTO do_not_call (map_id, block_number, address, note, last_visit)
-        VALUES (${mapId}, ${block}, ${address}, 'DNC', ${lastVisit})
-      `;
-      imported++;
-    }
+    updated = upd.length;
+
+    const ins = await sql`
+      INSERT INTO do_not_call (map_id, block_number, address, note, last_visit)
+      SELECT d.map_id, d.block_number, d.address, 'DNC', d.last_visit
+      FROM (SELECT * FROM unnest(${mapIds}::uuid[], ${blocks}::int[], ${addrs}::text[], ${visits}::text[])
+            AS t(map_id, block_number, address, last_visit)) d
+      WHERE NOT EXISTS (
+        SELECT 1 FROM do_not_call x WHERE x.map_id = d.map_id AND LOWER(x.address) = LOWER(d.address)
+      )
+      RETURNING id
+    `;
+    imported = ins.length;
   }
 
   return res.status(200).json({ imported, updated, unmatched_maps: Array.from(unmatchedMaps).sort((a, b) => a - b) });
