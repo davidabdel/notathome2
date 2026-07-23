@@ -12,6 +12,7 @@ interface MapData {
   id: string; map_number: number; name: string | null; block_count: number; image_url: string | null;
   dnc: Array<{ id: string; block_number?: number | null; address: string; note?: string; last_visit?: string | null }>;
 }
+type DncEntry = MapData['dnc'][number];
 
 export default function SessionPage() {
   const router = useRouter();
@@ -30,6 +31,12 @@ export default function SessionPage() {
   const [endModal, setEndModal] = useState(false);
   const [endData, setEndData] = useState<Address[] | null>(null);
   const [isOverseer, setIsOverseer] = useState(false);
+
+  // DNC tap-to-manage flow
+  const [dncModal, setDncModal] = useState<DncEntry | null>(null);
+  const [dncStep, setDncStep] = useState<'choose' | 'confirm' | 'denied'>('choose');
+  const [dncPending, setDncPending] = useState<'touch' | 'delete' | null>(null);
+  const [dncBusy, setDncBusy] = useState(false);
 
   const loadAddresses = useCallback(async (sessionId: string) => {
     const res = await fetch(`/api/addresses?session_id=${sessionId}`);
@@ -130,6 +137,37 @@ export default function SessionPage() {
     setAddresses(prev => prev.filter(a => a.id !== id));
   };
 
+  const openDnc = (entry: DncEntry) => {
+    setDncModal(entry);
+    setDncStep('choose');
+    setDncPending(null);
+  };
+
+  const closeDnc = () => {
+    setDncModal(null);
+    setDncStep('choose');
+    setDncPending(null);
+  };
+
+  const runDncAction = async () => {
+    if (!dncModal || !dncPending || !session) return;
+    setDncBusy(true);
+    const res = await fetch('/api/maps/dnc-action', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: session.id, dnc_id: dncModal.id, action: dncPending }),
+    });
+    setDncBusy(false);
+    if (res.ok) {
+      closeDnc();
+      if (mapData) {
+        const mRes = await fetch(`/api/maps/${mapData.id}`);
+        if (mRes.ok) setMapData(await mRes.json());
+      }
+    } else {
+      alert('Could not complete the request. Please try again.');
+    }
+  };
+
   const endSession = async () => {
     if (!session) return;
     const res = await fetch(`/api/sessions/${code}`, { method: 'DELETE' });
@@ -224,7 +262,7 @@ export default function SessionPage() {
                     </thead>
                     <tbody>
                       {mapData.dnc.map(d => (
-                        <tr key={d.id}>
+                        <tr key={d.id} onClick={() => openDnc(d)} style={{ cursor: 'pointer' }}>
                           <td style={{ ...styles.dncTd, textAlign: 'center' }}>{d.block_number ?? ''}</td>
                           <td style={styles.dncTd}>{d.address}</td>
                           <td style={styles.dncTd}>{d.last_visit || ''}</td>
@@ -232,6 +270,7 @@ export default function SessionPage() {
                       ))}
                     </tbody>
                   </table>
+                  <p style={{ fontSize: 11, color: '#92826a', margin: '6px 2px 0' }}>Tap an address to update or remove it.</p>
                 </div>
               )}
             </div>
@@ -369,6 +408,57 @@ export default function SessionPage() {
                 Share &amp; End Session
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DNC tap-to-manage modal */}
+      {dncModal && (
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 style={{ margin: 0 }}>Do Not Call</h3>
+              <button style={styles.closeBtn} onClick={closeDnc}>✕</button>
+            </div>
+            <p style={{ color: '#374151', fontSize: 15, fontWeight: 600, margin: '0 0 2px' }}>
+              {dncModal.block_number != null ? `Block ${dncModal.block_number} — ` : ''}{dncModal.address}
+            </p>
+            {dncModal.last_visit && <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 16px' }}>Last visit: {dncModal.last_visit}</p>}
+
+            {dncStep === 'choose' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                <button style={{ ...styles.btn, background: '#2563eb', marginBottom: 0 }} onClick={() => { setDncPending('touch'); setDncStep('confirm'); }}>
+                  📅 Update Last Visit to Today
+                </button>
+                <button style={{ ...styles.btn, background: '#ef4444', marginBottom: 0 }} onClick={() => { setDncPending('delete'); setDncStep('confirm'); }}>
+                  🗑 Delete This DNC
+                </button>
+                <button style={styles.cancelBtn} onClick={closeDnc}>Cancel</button>
+              </div>
+            )}
+
+            {dncStep === 'confirm' && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '14px', marginBottom: 16 }}>
+                  <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>Has this been completed by an elder?</p>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={styles.cancelBtn} disabled={dncBusy} onClick={() => setDncStep('denied')}>No</button>
+                  <button style={{ ...styles.confirmBtn, background: dncPending === 'delete' ? '#ef4444' : '#2563eb' }} disabled={dncBusy} onClick={runDncAction}>
+                    {dncBusy ? 'Saving…' : 'Yes'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {dncStep === 'denied' && (
+              <div style={{ marginTop: 12 }}>
+                <p style={{ fontSize: 15, color: '#374151', marginBottom: 20 }}>
+                  Please let an elder know so this can be completed. No changes have been made.
+                </p>
+                <button style={{ ...styles.confirmBtn, width: '100%' }} onClick={closeDnc}>OK</button>
+              </div>
+            )}
           </div>
         </div>
       )}
