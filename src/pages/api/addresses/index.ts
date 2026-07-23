@@ -22,13 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       WHERE id = ${session_id} AND is_active = true AND expires_at > NOW() LIMIT 1
     `;
     if (!session.length) return res.status(404).json({ error: 'Session not found or expired' });
-    const rows = await sql`
-      INSERT INTO not_at_home_addresses (session_id, block_number, unit_number, house_number, street_name, suburb)
-      VALUES (${session_id}, ${block_number}, ${unit_number || null}, ${house_number}, ${street_name}, ${suburb || null})
-      RETURNING *
-    `;
 
-    // DNC flag: permanently record this address on the map's Do Not Call list
+    // DNC flag: record ONLY on the map's permanent Do Not Call list — a DNC is
+    // not a "not at home", so it must not appear in the not-at-home list.
     if (dnc === true) {
       const addrText = `${unit_number ? `${unit_number}/` : ''}${house_number} ${street_name}`.trim();
       const map = await sql`
@@ -56,8 +52,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `;
         }
       }
+      return res.status(201).json({ ok: true, dnc: true });
     }
 
+    const rows = await sql`
+      INSERT INTO not_at_home_addresses (session_id, block_number, unit_number, house_number, street_name, suburb)
+      VALUES (${session_id}, ${block_number}, ${unit_number || null}, ${house_number}, ${street_name}, ${suburb || null})
+      RETURNING *
+    `;
     return res.status(201).json(rows[0]);
   }
 
