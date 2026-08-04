@@ -48,19 +48,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (existing.length && existing[0].status === 'approved') {
         return res.status(200).json({ ok: true, dnc: 'already_approved' });
       }
+      const reason = String(dnc_reason).trim();
+      const submittedBy = String(dnc_submitted_by).trim();
       if (existing.length) {
         await sql`
           UPDATE do_not_call
-          SET block_number = ${block_number}, reason = ${String(dnc_reason).trim()}, submitted_by = ${String(dnc_submitted_by).trim()}
+          SET block_number = ${block_number}, reason = ${reason}, submitted_by = ${submittedBy}
           WHERE id = ${existing[0].id}
         `;
-        return res.status(200).json({ ok: true, dnc: 'pending' });
+      } else {
+        await sql`
+          INSERT INTO do_not_call (map_id, block_number, address, note, status, reason, submitted_by)
+          VALUES (${map[0].id}, ${block_number}, ${addrText}, 'DNC', 'pending', ${reason}, ${submittedBy})
+        `;
       }
-      await sql`
-        INSERT INTO do_not_call (map_id, block_number, address, note, status, reason, submitted_by)
-        VALUES (${map[0].id}, ${block_number}, ${addrText}, 'DNC', 'pending', ${String(dnc_reason).trim()}, ${String(dnc_submitted_by).trim()})
-      `;
-      return res.status(201).json({ ok: true, dnc: 'pending' });
+
+      // Notify the congregation's admins (best-effort — never block submission)
+      try {
+        const cong = await sql`SELECT name, notification_email FROM congregations WHERE id = ${session[0].congregation_id} LIMIT 1`;
+        const adminRows = await sql`SELECT email FROM congregation_admins WHERE congregation_id = ${session[0].congregation_id}`;
+        const recipients = Array.from(new Set(
+          [...adminRows.map((a) => a.email as string), cong[0]?.notification_email as string | undefined].filter(Boolean)
+        )) as string[];
+        if (recipients.length) {
+          const { sendDncRequestEmail } = await import('../../../lib/email');
+          await sendDncRequestEmail({
+            to: recipients,
+            congregationName: cong[0]?.name || 'your congregation',
+            address: addrText,
+            blockNumber: block_number,
+            mapNumber: session[0].map_number,
+            reason,
+            submittedBy,
+          });
+        }
+      } catch (e) {
+        console.error('DNC request email failed:', e);
+      }
+
+      return res.status(existing.length ? 200 : 201).json({ ok: true, dnc: 'pending' });
     }
 
     const rows = await sql`
