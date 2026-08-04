@@ -29,6 +29,7 @@ export default function SessionPage() {
   const [manualModal, setManualModal] = useState(false);
   const [manual, setManual] = useState({ unit: '', house: '', street: '', suburb: '', dnc: false, dncReason: '', dncName: '' });
   const [dncSubmitted, setDncSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [endModal, setEndModal] = useState(false);
   const [endData, setEndData] = useState<Address[] | null>(null);
   const [isOverseer, setIsOverseer] = useState(false);
@@ -111,34 +112,43 @@ export default function SessionPage() {
       alert('Please add a reason and your name for the Do Not Call request.');
       return;
     }
-    const res = await fetch('/api/addresses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: session.id,
-        block_number: selectedBlock,
-        unit_number: data.unit || null,
-        house_number: data.house,
-        street_name: data.street,
-        suburb: data.suburb || null,
-        dnc: data.dnc,
-        dnc_reason: data.dnc ? data.dncReason : null,
-        dnc_submitted_by: data.dnc ? data.dncName : null,
-      }),
-    });
-    if (res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setConfirmModal(null);
-      setManualModal(false);
-      setManual({ unit: '', house: '', street: '', suburb: '', dnc: false, dncReason: '', dncName: '' });
-      if (data.dnc) {
-        // A DNC is a request — it is NOT added to the not-home list or the map
-        // until a congregation admin approves it.
-        if (body.dnc === 'already_approved') alert('This address is already on the Do Not Call list.');
-        else setDncSubmitted(true);
+    setSaving(true);
+    try {
+      const res = await fetch('/api/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: session.id,
+          block_number: selectedBlock,
+          unit_number: data.unit || null,
+          house_number: data.house,
+          street_name: data.street,
+          suburb: data.suburb || null,
+          dnc: data.dnc,
+          dnc_reason: data.dnc ? data.dncReason : null,
+          dnc_submitted_by: data.dnc ? data.dncName : null,
+        }),
+      });
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setConfirmModal(null);
+        setManualModal(false);
+        setManual({ unit: '', house: '', street: '', suburb: '', dnc: false, dncReason: '', dncName: '' });
+        if (data.dnc) {
+          // A DNC is a request — it is NOT added to the not-home list or the map
+          // until a congregation admin approves it.
+          if (body.dnc === 'already_approved') alert('This address is already on the Do Not Call list.');
+          else setDncSubmitted(true);
+        } else {
+          loadAddresses(session.id);
+        }
       } else {
-        loadAddresses(session.id);
+        alert('Could not save. Please try again.');
       }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -239,6 +249,7 @@ export default function SessionPage() {
   return (
     <>
       <Head><title>Session {code} — Not At Home</title></Head>
+      <style>{`@keyframes nahspin{to{transform:rotate(360deg)}}`}</style>
       <div style={styles.page}>
         <div style={styles.topBar}>
           <span style={styles.appName}>Session: {code}</span>
@@ -380,8 +391,10 @@ export default function SessionPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button style={styles.cancelBtn} onClick={() => setConfirmModal(null)}>Cancel</button>
-              <button style={styles.confirmBtn} onClick={() => saveAddress(confirmModal)}>{confirmModal.dnc ? 'Submit Request' : 'Confirm & Save'}</button>
+              <button style={styles.cancelBtn} onClick={() => setConfirmModal(null)} disabled={saving}>Cancel</button>
+              <button style={{ ...styles.confirmBtn, opacity: saving ? 0.85 : 1 }} onClick={() => saveAddress(confirmModal)} disabled={saving}>
+                {saving ? <><span style={styles.spinner} /> Submitting…</> : (confirmModal.dnc ? 'Submit Request' : 'Confirm & Save')}
+              </button>
             </div>
           </div>
         </div>
@@ -415,8 +428,10 @@ export default function SessionPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button style={styles.cancelBtn} onClick={() => setManualModal(false)}>Cancel</button>
-              <button style={styles.confirmBtn} onClick={() => saveAddress(manual)} disabled={!manual.house || !manual.street}>{manual.dnc ? 'Submit Request' : 'Save'}</button>
+              <button style={styles.cancelBtn} onClick={() => setManualModal(false)} disabled={saving}>Cancel</button>
+              <button style={{ ...styles.confirmBtn, opacity: saving ? 0.85 : 1 }} onClick={() => saveAddress(manual)} disabled={saving || !manual.house || !manual.street}>
+                {saving ? <><span style={styles.spinner} /> Submitting…</> : (manual.dnc ? 'Submit Request' : 'Save')}
+              </button>
             </div>
           </div>
         </div>
@@ -536,6 +551,7 @@ const styles: Record<string, React.CSSProperties> = {
   dncBox: { width: 20, height: 20, accentColor: '#dc2626' },
   dncReqBox: { background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 12px 2px', marginTop: 10 },
   dncReqNote: { fontSize: 12, color: '#b91c1c', margin: '0 0 10px' },
+  spinner: { display: 'inline-block', width: 15, height: 15, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'nahspin 0.7s linear infinite', verticalAlign: '-2px', marginRight: 6 },
   dncTh: { fontSize: 12, fontWeight: 700, color: '#374151', padding: '4px 6px', borderBottom: '1px solid #d1d5db', textAlign: 'center' },
   dncTd: { fontSize: 13, color: '#374151', padding: '5px 6px', borderBottom: '1px solid #e5e7eb' },
   lbl: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },
