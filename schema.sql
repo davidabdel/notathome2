@@ -43,12 +43,18 @@ CREATE TABLE IF NOT EXISTS do_not_call (
   address      TEXT NOT NULL,
   note         TEXT,
   last_visit   TEXT,
+  status       TEXT NOT NULL DEFAULT 'approved',
+  reason       TEXT,
+  submitted_by TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Existing databases: add newer columns if missing
 ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS block_number INTEGER;
 ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS last_visit TEXT;
+ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS reason TEXT;
+ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS submitted_by TEXT;
 
 -- Active sessions (ephemeral — deleted when session ends or after 24h)
 CREATE TABLE IF NOT EXISTS sessions (

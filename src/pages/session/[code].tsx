@@ -25,9 +25,10 @@ export default function SessionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [locating, setLocating] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ unit: string; house: string; street: string; suburb: string; dnc: boolean } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ unit: string; house: string; street: string; suburb: string; dnc: boolean; dncReason: string; dncName: string } | null>(null);
   const [manualModal, setManualModal] = useState(false);
-  const [manual, setManual] = useState({ unit: '', house: '', street: '', suburb: '', dnc: false });
+  const [manual, setManual] = useState({ unit: '', house: '', street: '', suburb: '', dnc: false, dncReason: '', dncName: '' });
+  const [dncSubmitted, setDncSubmitted] = useState(false);
   const [endModal, setEndModal] = useState(false);
   const [endData, setEndData] = useState<Address[] | null>(null);
   const [isOverseer, setIsOverseer] = useState(false);
@@ -93,10 +94,10 @@ export default function SessionPage() {
             house: addr.house || '',
             street: addr.street || '',
             suburb: addr.suburb || '',
-            dnc: false,
+            dnc: false, dncReason: '', dncName: '',
           });
         } catch {
-          setConfirmModal({ unit: '', house: '', street: '', suburb: '', dnc: false });
+          setConfirmModal({ unit: '', house: '', street: '', suburb: '', dnc: false, dncReason: '', dncName: '' });
         }
       },
       () => { setLocating(false); alert('Could not get location. Try manually.'); },
@@ -104,8 +105,12 @@ export default function SessionPage() {
     );
   };
 
-  const saveAddress = async (data: { unit: string; house: string; street: string; suburb: string; dnc: boolean }) => {
+  const saveAddress = async (data: { unit: string; house: string; street: string; suburb: string; dnc: boolean; dncReason: string; dncName: string }) => {
     if (!session || !selectedBlock) return;
+    if (data.dnc && (!data.dncReason.trim() || !data.dncName.trim())) {
+      alert('Please add a reason and your name for the Do Not Call request.');
+      return;
+    }
     const res = await fetch('/api/addresses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -117,17 +122,22 @@ export default function SessionPage() {
         street_name: data.street,
         suburb: data.suburb || null,
         dnc: data.dnc,
+        dnc_reason: data.dnc ? data.dncReason : null,
+        dnc_submitted_by: data.dnc ? data.dncName : null,
       }),
     });
     if (res.ok) {
+      const body = await res.json().catch(() => ({}));
       setConfirmModal(null);
       setManualModal(false);
-      setManual({ unit: '', house: '', street: '', suburb: '', dnc: false });
-      loadAddresses(session.id);
-      // Refresh the map's Do Not Call list so a new DNC shows immediately
-      if (data.dnc && mapData) {
-        const mRes = await fetch(`/api/maps/${mapData.id}`);
-        if (mRes.ok) setMapData(await mRes.json());
+      setManual({ unit: '', house: '', street: '', suburb: '', dnc: false, dncReason: '', dncName: '' });
+      if (data.dnc) {
+        // A DNC is a request — it is NOT added to the not-home list or the map
+        // until a congregation admin approves it.
+        if (body.dnc === 'already_approved') alert('This address is already on the Do Not Call list.');
+        else setDncSubmitted(true);
+      } else {
+        loadAddresses(session.id);
       }
     }
   };
@@ -358,11 +368,20 @@ export default function SessionPage() {
             <div style={styles.field3}><label style={styles.lbl}>Suburb</label><input style={styles.inp} value={confirmModal.suburb} onChange={e => setConfirmModal({ ...confirmModal, suburb: e.target.value })} /></div>
             <label style={styles.dncRow}>
               <input type="checkbox" checked={confirmModal.dnc} onChange={e => setConfirmModal({ ...confirmModal, dnc: e.target.checked })} style={styles.dncBox} />
-              DNC — Do Not Call
+              Request Do Not Call (DNC)
             </label>
+            {confirmModal.dnc && (
+              <div style={styles.dncReqBox}>
+                <p style={styles.dncReqNote}>This is sent to the congregation admins to approve. It won&apos;t appear on the map until approved.</p>
+                <div style={styles.field3}><label style={styles.lbl}>Reason for Do Not Call <span style={{ color: '#dc2626' }}>*</span></label>
+                  <textarea style={{ ...styles.inp, minHeight: 64, resize: 'vertical' }} value={confirmModal.dncReason} onChange={e => setConfirmModal({ ...confirmModal, dncReason: e.target.value })} placeholder="Why should this be a Do Not Call?" /></div>
+                <div style={styles.field3}><label style={styles.lbl}>Your Name <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input style={styles.inp} value={confirmModal.dncName} onChange={e => setConfirmModal({ ...confirmModal, dncName: e.target.value })} placeholder="Publisher name" /></div>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button style={styles.cancelBtn} onClick={() => setConfirmModal(null)}>Cancel</button>
-              <button style={styles.confirmBtn} onClick={() => saveAddress(confirmModal)}>Confirm &amp; Save</button>
+              <button style={styles.confirmBtn} onClick={() => saveAddress(confirmModal)}>{confirmModal.dnc ? 'Submit Request' : 'Confirm & Save'}</button>
             </div>
           </div>
         </div>
@@ -384,11 +403,36 @@ export default function SessionPage() {
             <div style={styles.field3}><label style={styles.lbl}>Suburb</label><input style={styles.inp} value={manual.suburb} onChange={e => setManual({ ...manual, suburb: e.target.value })} /></div>
             <label style={styles.dncRow}>
               <input type="checkbox" checked={manual.dnc} onChange={e => setManual({ ...manual, dnc: e.target.checked })} style={styles.dncBox} />
-              DNC — Do Not Call
+              Request Do Not Call (DNC)
             </label>
+            {manual.dnc && (
+              <div style={styles.dncReqBox}>
+                <p style={styles.dncReqNote}>This is sent to the congregation admins to approve. It won&apos;t appear on the map until approved.</p>
+                <div style={styles.field3}><label style={styles.lbl}>Reason for Do Not Call <span style={{ color: '#dc2626' }}>*</span></label>
+                  <textarea style={{ ...styles.inp, minHeight: 64, resize: 'vertical' }} value={manual.dncReason} onChange={e => setManual({ ...manual, dncReason: e.target.value })} placeholder="Why should this be a Do Not Call?" /></div>
+                <div style={styles.field3}><label style={styles.lbl}>Your Name <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input style={styles.inp} value={manual.dncName} onChange={e => setManual({ ...manual, dncName: e.target.value })} placeholder="Publisher name" /></div>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button style={styles.cancelBtn} onClick={() => setManualModal(false)}>Cancel</button>
-              <button style={styles.confirmBtn} onClick={() => saveAddress(manual)} disabled={!manual.house || !manual.street}>Save</button>
+              <button style={styles.confirmBtn} onClick={() => saveAddress(manual)} disabled={!manual.house || !manual.street}>{manual.dnc ? 'Submit Request' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DNC request submitted */}
+      {dncSubmitted && (
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>📨</div>
+              <h3 style={{ margin: '0 0 8px' }}>Request Sent</h3>
+              <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 20 }}>
+                Your Do Not Call request has been sent to the congregation admins. It will appear on the map once approved.
+              </p>
+              <button style={{ ...styles.confirmBtn, width: '100%' }} onClick={() => setDncSubmitted(false)}>OK</button>
             </div>
           </div>
         </div>
@@ -490,6 +534,8 @@ const styles: Record<string, React.CSSProperties> = {
   field3: { marginBottom: 12 },
   dncRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 15, fontWeight: 600, color: '#b91c1c', cursor: 'pointer' },
   dncBox: { width: 20, height: 20, accentColor: '#dc2626' },
+  dncReqBox: { background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 12px 2px', marginTop: 10 },
+  dncReqNote: { fontSize: 12, color: '#b91c1c', margin: '0 0 10px' },
   dncTh: { fontSize: 12, fontWeight: 700, color: '#374151', padding: '4px 6px', borderBottom: '1px solid #d1d5db', textAlign: 'center' },
   dncTd: { fontSize: 13, color: '#374151', padding: '5px 6px', borderBottom: '1px solid #e5e7eb' },
   lbl: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 },

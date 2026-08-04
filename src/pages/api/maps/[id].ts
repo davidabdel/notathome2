@@ -11,9 +11,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!maps.length) return res.status(404).json({ error: 'Map not found' });
     let dnc;
     try {
-      dnc = await sql`SELECT * FROM do_not_call WHERE map_id = ${id} ORDER BY block_number NULLS LAST, address`;
+      // Only approved DNCs appear on the map; pending requests await admin review
+      dnc = await sql`SELECT * FROM do_not_call WHERE map_id = ${id} AND COALESCE(status, 'approved') = 'approved' ORDER BY block_number NULLS LAST, address`;
     } catch {
-      // block_number column not added yet (created on first DNC write)
+      // newer columns not added yet (created on first DNC write)
       dnc = await sql`SELECT * FROM do_not_call WHERE map_id = ${id} ORDER BY address`;
     }
     return res.status(200).json({ ...maps[0], dnc });

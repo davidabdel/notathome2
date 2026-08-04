@@ -8,9 +8,10 @@ export default requireAdmin(async (req, res) => {
   if (req.method === 'GET') {
     let rows;
     try {
-      rows = await sql`SELECT id, block_number, address, note, last_visit FROM do_not_call WHERE map_id = ${id} ORDER BY block_number NULLS LAST, address`;
+      // Admin manage list mirrors the map: approved entries only
+      rows = await sql`SELECT id, block_number, address, note, last_visit FROM do_not_call WHERE map_id = ${id} AND COALESCE(status, 'approved') = 'approved' ORDER BY block_number NULLS LAST, address`;
     } catch {
-      // block_number/last_visit columns not added yet (created on first DNC write)
+      // newer columns not added yet (created on first DNC write)
       rows = await sql`SELECT id, address, note FROM do_not_call WHERE map_id = ${id} ORDER BY address`;
     }
     return res.status(200).json(rows);
@@ -21,9 +22,11 @@ export default requireAdmin(async (req, res) => {
     if (!address) return res.status(400).json({ error: 'address required' });
     await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS block_number INTEGER`;
     await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS last_visit TEXT`;
+    await sql`ALTER TABLE do_not_call ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved'`;
+    // Admin-added entries are approved immediately
     const rows = await sql`
-      INSERT INTO do_not_call (map_id, block_number, address, note, last_visit)
-      VALUES (${id}, ${block_number || null}, ${address.trim()}, ${note?.trim() || null}, ${last_visit?.trim() || null})
+      INSERT INTO do_not_call (map_id, block_number, address, note, last_visit, status)
+      VALUES (${id}, ${block_number || null}, ${address.trim()}, ${note?.trim() || null}, ${last_visit?.trim() || null}, 'approved')
       RETURNING id, block_number, address, note, last_visit
     `;
     return res.status(201).json(rows[0]);

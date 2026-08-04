@@ -12,11 +12,12 @@ export default function CongregationAdmin() {
   const [maps, setMaps] = useState<MapRow[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'maps' | 'settings' | 'admins'>('maps');
+  const [tab, setTab] = useState<'maps' | 'requests' | 'settings' | 'admins'>('maps');
   const [settingsForm, setSettingsForm] = useState({ pin_code: '', notification_email: '' });
   const [msg, setMsg] = useState('');
   const [admins, setAdmins] = useState<Array<{ id: string; email: string; created_at: string }>>([]);
   const [newAdmin, setNewAdmin] = useState({ email: '', password: '' });
+  const [pending, setPending] = useState<Array<{ id: string; block_number: number | null; address: string; reason: string | null; submitted_by: string | null; map_number: number; map_name: string | null }>>([]);
 
   // Map detail modal
   const [detailMap, setDetailMap] = useState<MapRow | null>(null);
@@ -44,7 +45,7 @@ export default function CongregationAdmin() {
       const me = await meRes.json();
       if (me.role !== 'congregation_admin') { router.push('/admin-login'); return; }
       setCongregation(me.congregation_name || '');
-      await Promise.all([loadMaps(), loadSettings(), loadAdmins()]);
+      await Promise.all([loadMaps(), loadSettings(), loadAdmins(), loadPending()]);
       setLoading(false);
     };
     init();
@@ -53,6 +54,19 @@ export default function CongregationAdmin() {
   const loadMaps = async () => {
     const res = await fetch('/api/maps');
     if (res.ok) setMaps(await res.json());
+  };
+
+  const loadPending = async () => {
+    const res = await fetch('/api/maps/dnc-pending');
+    if (res.ok) setPending(await res.json());
+  };
+
+  const decidePending = async (id: string, action: 'approve' | 'reject') => {
+    await fetch('/api/maps/dnc-pending', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dnc_id: id, action }),
+    });
+    loadPending();
   };
 
   const loadSettings = async () => {
@@ -252,9 +266,11 @@ export default function CongregationAdmin() {
         </div>
 
         <div style={S.tabs}>
-          {(['maps', 'settings', 'admins'] as const).map(t => (
+          {(['maps', 'requests', 'settings', 'admins'] as const).map(t => (
             <button key={t} style={{ ...S.tab, ...(tab === t ? S.tabActive : {}) }} onClick={() => setTab(t)}>
-              {t === 'maps' ? '🗺 Maps' : t === 'settings' ? '⚙️ Settings' : '👥 Admins'}
+              {t === 'maps' ? '🗺 Maps'
+                : t === 'requests' ? <>🔔 Requests{pending.length > 0 && <span style={S.badge}>{pending.length}</span>}</>
+                : t === 'settings' ? '⚙️ Settings' : '👥 Admins'}
             </button>
           ))}
         </div>
@@ -294,6 +310,31 @@ export default function CongregationAdmin() {
                     ))}
                   </div>
                 )
+              }
+            </>
+          )}
+
+          {tab === 'requests' && (
+            <>
+              <h3 style={{ margin: '4px 4px 12px' }}>Do Not Call Requests ({pending.length})</h3>
+              {pending.length === 0
+                ? <p style={S.empty}>No pending requests. Requests submitted by publishers in the field will appear here for approval.</p>
+                : pending.map(p => (
+                  <div key={p.id} style={{ ...S.card, flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
+                      {p.block_number != null ? `Block ${p.block_number} — ` : ''}{p.address}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#6b7280' }}>
+                      Map {p.map_number}{p.map_name ? ` — ${p.map_name}` : ''}
+                    </div>
+                    {p.reason && <div style={{ fontSize: 14, color: '#374151', background: '#f9fafb', borderRadius: 8, padding: '8px 10px' }}>“{p.reason}”</div>}
+                    <div style={{ fontSize: 12, color: '#9ca3af' }}>Submitted by {p.submitted_by || 'Unknown'}</div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      <button style={{ ...S.saveBtn, flex: 1, background: '#16a34a' }} onClick={() => decidePending(p.id, 'approve')}>✓ Approve</button>
+                      <button style={{ ...S.saveBtn, flex: 1, background: '#ef4444' }} onClick={() => decidePending(p.id, 'reject')}>✕ Reject</button>
+                    </div>
+                  </div>
+                ))
               }
             </>
           )}
@@ -432,6 +473,7 @@ const S: Record<string, React.CSSProperties> = {
   tabs: { display: 'flex', background: '#fff', borderBottom: '1px solid #e5e7eb' },
   tab: { flex: 1, padding: '12px', border: 'none', background: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#6b7280' },
   tabActive: { color: '#7c3aed', borderBottom: '2px solid #7c3aed' },
+  badge: { display: 'inline-block', minWidth: 18, marginLeft: 5, padding: '1px 5px', background: '#ef4444', color: '#fff', borderRadius: 9, fontSize: 11, fontWeight: 700 },
   content: { padding: '16px', maxWidth: 700, margin: '0 auto' },
   addBtn: { width: '100%', padding: '13px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 16 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 },
